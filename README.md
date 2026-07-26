@@ -1,0 +1,3 @@
+# SQLiteExtensionTemplate
+
+SQLite extension template
