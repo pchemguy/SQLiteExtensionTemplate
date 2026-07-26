@@ -3,7 +3,7 @@
 **
 ** SQLite extension providing:
 **
-**   alpa_string(language [, start [, length]])
+**   alpha_string(language [, start [, length]])
 **
 ** language:
 **   "en" or "English"  -> Latin alphabet
@@ -18,10 +18,12 @@
 **
 ** Examples:
 **
-**   SELECT alpa_string('en');
-**   SELECT alpa_string('English', 3);
-**   SELECT alpa_string('ru', -5);
-**   SELECT alpa_string('Russian', 2, 4);
+**   SELECT alpha_string('en');
+**   SELECT alpha_string('English', 3);
+**   SELECT alpha_string('ru', -5);
+**   SELECT alpha_string('Russian', 2, 4);
+**
+** https://chatgpt.com/c/6a6618c4-48b0-83eb-851b-7a60f648fbae
 */
 
 #ifndef SQLITE_CORE
@@ -31,33 +33,33 @@
 # include "sqlite3.h"
 #endif
 
-#define ALPHABET_LATIN_UTF8 \
+#define LATIN_UTF8 \
   "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
   "abcdefghijklmnopqrstuvwxyz"
 
-#define ALPHABET_CYRILLIC_UTF8 \
+#define CYRILLIC_UTF8 \
   "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ" \
   "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
 
 /*
 ** Return the byte length of the UTF-8 code point beginning at z.
-**
-** The function is used only with the fixed, valid UTF-8 strings above.
 */
-static int alphabetUtf8CharBytes(const unsigned char *z){
+static int utf8_byte_count(const unsigned char *z){
   if( z[0] < 0x80 ) return 1;
   if( (z[0] & 0xE0) == 0xC0 ) return 2;
   if( (z[0] & 0xF0) == 0xE0 ) return 3;
   return 4;
 }
 
-/* Return the number of Unicode code points in a valid UTF-8 string. */
-static sqlite3_int64 alphabetUtf8Length(const char *z){
+/*
+** Return the number of Unicode code points in a valid UTF-8 string.
+*/
+static sqlite3_int64 utf8_length(const char *z){
   const unsigned char *p = (const unsigned char *)z;
   sqlite3_int64 n = 0;
 
   while( *p!=0 ){
-    p += alphabetUtf8CharBytes(p);
+    p += utf8_byte_count(p);
     ++n;
   }
   return n;
@@ -65,14 +67,14 @@ static sqlite3_int64 alphabetUtf8Length(const char *z){
 
 /*
 ** Return the byte offset corresponding to Unicode code-point index i.
-** The caller guarantees 0 <= i <= alphabetUtf8Length(z).
+** The caller guarantees 0 <= i <= utf8_length(z).
 */
-static int alphabetUtf8ByteOffset(const char *z, sqlite3_int64 i){
+static int utf8_byte_offset(const char *z, sqlite3_int64 i){
   const unsigned char *p = (const unsigned char *)z;
   const unsigned char *pStart = p;
 
   while( i>0 ){
-    p += alphabetUtf8CharBytes(p);
+    p += utf8_byte_count(p);
     --i;
   }
   return (int)(p - pStart);
@@ -82,23 +84,25 @@ static int alphabetUtf8ByteOffset(const char *z, sqlite3_int64 i){
 ** Resolve language to one of the supported alphabet strings.
 ** Return NULL for an unsupported language.
 */
-static const char *alphabetSelect(const char *zLanguage){
+static const char *alphabet_select(const char *zLanguage){
   if( sqlite3_stricmp(zLanguage, "en")==0
    || sqlite3_stricmp(zLanguage, "English")==0
   ){
-    return ALPHABET_LATIN_UTF8;
+    return LATIN_UTF8;
   }
 
   if( sqlite3_stricmp(zLanguage, "ru")==0
    || sqlite3_stricmp(zLanguage, "Russian")==0
   ){
-    return ALPHABET_CYRILLIC_UTF8;
+    return CYRILLIC_UTF8;
   }
 
   return 0;
 }
 
-/* SQL implementation of alpa_string(). */
+/*
+** SQL implementation of alpha_string().
+*/
 static void alphabetStringFunc(
   sqlite3_context *context,
   int argc,
@@ -114,7 +118,7 @@ static void alphabetStringFunc(
 
   /*
   ** NULL propagates. This also permits calls such as
-  ** alpa_string('en', NULL) to return NULL.
+  ** alpha_string('en', NULL) to return NULL.
   */
   if( sqlite3_value_type(argv[0])==SQLITE_NULL
    || (argc>=2 && sqlite3_value_type(argv[1])==SQLITE_NULL)
@@ -130,53 +134,52 @@ static void alphabetStringFunc(
     return;
   }
 
-  zAlphabet = alphabetSelect(zLanguage);
+  zAlphabet = alphabet_select(zLanguage);
   if( zAlphabet==0 ){
     sqlite3_result_error(
       context,
-      "alpa_string() language must be en, English, ru, or Russian",
+      "alpha_string() language must be en, English, ru, or Russian",
       -1
     );
     return;
   }
 
-  nChars = alphabetUtf8Length(zAlphabet);
+  nChars = utf8_length(zAlphabet);
 
   if( argc>=2 ){
     if( sqlite3_value_type(argv[1])!=SQLITE_INTEGER ){
       sqlite3_result_error(
         context,
-        "alpa_string() start must be an integer",
+        "alpha_string() start must be an integer",
         -1
       );
       return;
     }
     iStart = sqlite3_value_int64(argv[1]);
 
+    if( iStart < -nChars || iStart > nChars ){
+      sqlite3_result_error(
+        context,
+        "alpa_string() start index is out of range",
+        -1
+      );
+      return;
+    }
+    
     if( iStart<0 ){
-      /*
-      ** Avoid signed overflow for extremely negative values.
-      ** Any value less than -nChars clamps to the beginning.
-      */
-      if( iStart < -nChars ){
-        iStart = 0;
-      }else{
-        iStart += nChars;
-      }
-    }else if( iStart>nChars ){
-      iStart = nChars;
+      iStart += nChars;
     }
   }
 
   nResult = nChars - iStart;
 
-  if( argc>=3 ){
+  if( argc==3 ){
     sqlite3_int64 nRequested;
 
     if( sqlite3_value_type(argv[2])!=SQLITE_INTEGER ){
       sqlite3_result_error(
         context,
-        "alpa_string() length must be an integer",
+        "alpha_string() length must be an integer",
         -1
       );
       return;
@@ -186,7 +189,7 @@ static void alphabetStringFunc(
     if( nRequested<0 ){
       sqlite3_result_error(
         context,
-        "alpa_string() length must not be negative",
+        "alpha_string() length must not be negative",
         -1
       );
       return;
@@ -197,8 +200,8 @@ static void alphabetStringFunc(
     }
   }
 
-  iByteStart = alphabetUtf8ByteOffset(zAlphabet, iStart);
-  iByteEnd = alphabetUtf8ByteOffset(zAlphabet, iStart + nResult);
+  iByteStart = utf8_byte_offset(zAlphabet, iStart);
+  iByteEnd = utf8_byte_offset(zAlphabet, iStart + nResult);
 
   sqlite3_result_text(
     context,
@@ -226,19 +229,19 @@ int sqlite3AlphabetInit(sqlite3 *db){
   int rc;
 
   rc = sqlite3_create_function(
-    db, "alpa_string", 1, flags, 0,
+    db, "alpha_string", 1, flags, 0,
     alphabetStringFunc, 0, 0
   );
   if( rc!=SQLITE_OK ) return rc;
 
   rc = sqlite3_create_function(
-    db, "alpa_string", 2, flags, 0,
+    db, "alpha_string", 2, flags, 0,
     alphabetStringFunc, 0, 0
   );
   if( rc!=SQLITE_OK ) return rc;
 
   return sqlite3_create_function(
-    db, "alpa_string", 3, flags, 0,
+    db, "alpha_string", 3, flags, 0,
     alphabetStringFunc, 0, 0
   );
 }
