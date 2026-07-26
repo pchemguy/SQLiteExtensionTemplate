@@ -128,6 +128,15 @@ static void alphabetStringFunc(
     return;
   }
 
+  if( sqlite3_value_type(argv[0])!=SQLITE_TEXT ){
+    sqlite3_result_error(
+      context,
+      "alpha_string() language must be text",
+      -1
+    );
+    return;
+  }
+  
   zLanguage = (const char *)sqlite3_value_text(argv[0]);
   if( zLanguage==0 ){
     sqlite3_result_error_nomem(context);
@@ -160,7 +169,7 @@ static void alphabetStringFunc(
     if( iStart < -nChars || iStart > nChars ){
       sqlite3_result_error(
         context,
-        "alpa_string() start index is out of range",
+        "alpha_string() start index is out of range",
         -1
       );
       return;
