@@ -3,13 +3,13 @@
 **
 ** SQLite extension providing:
 **
-**   alpa_string(selector [, start [, length]])
+**   alpa_string(language [, start [, length]])
 **
-** selector:
+** language:
 **   "en" or "English"  -> Latin alphabet
 **   "ru" or "Russian"  -> Russian Cyrillic alphabet
 **
-** selector matching is case-insensitive.
+** language matching is case-insensitive.
 **
 ** start is a zero-based Unicode code-point index. A negative value counts
 ** backward from the end of the selected alphabet.
@@ -32,7 +32,8 @@
 #endif
 
 #define ALPHABET_LATIN_UTF8 \
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
+  "abcdefghijklmnopqrstuvwxyz"
 
 #define ALPHABET_CYRILLIC_UTF8 \
   "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ" \
@@ -78,18 +79,18 @@ static int alphabetUtf8ByteOffset(const char *z, sqlite3_int64 i){
 }
 
 /*
-** Resolve a selector to one of the supported alphabet strings.
-** Return NULL for an unsupported selector.
+** Resolve language to one of the supported alphabet strings.
+** Return NULL for an unsupported language.
 */
-static const char *alphabetSelect(const char *zSelector){
-  if( sqlite3_stricmp(zSelector, "en")==0
-   || sqlite3_stricmp(zSelector, "English")==0
+static const char *alphabetSelect(const char *zLanguage){
+  if( sqlite3_stricmp(zLanguage, "en")==0
+   || sqlite3_stricmp(zLanguage, "English")==0
   ){
     return ALPHABET_LATIN_UTF8;
   }
 
-  if( sqlite3_stricmp(zSelector, "ru")==0
-   || sqlite3_stricmp(zSelector, "Russian")==0
+  if( sqlite3_stricmp(zLanguage, "ru")==0
+   || sqlite3_stricmp(zLanguage, "Russian")==0
   ){
     return ALPHABET_CYRILLIC_UTF8;
   }
@@ -103,7 +104,7 @@ static void alphabetStringFunc(
   int argc,
   sqlite3_value **argv
 ){
-  const char *zSelector;
+  const char *zLanguage;
   const char *zAlphabet;
   sqlite3_int64 nChars;
   sqlite3_int64 iStart = 0;
@@ -123,17 +124,17 @@ static void alphabetStringFunc(
     return;
   }
 
-  zSelector = (const char *)sqlite3_value_text(argv[0]);
-  if( zSelector==0 ){
+  zLanguage = (const char *)sqlite3_value_text(argv[0]);
+  if( zLanguage==0 ){
     sqlite3_result_error_nomem(context);
     return;
   }
 
-  zAlphabet = alphabetSelect(zSelector);
+  zAlphabet = alphabetSelect(zLanguage);
   if( zAlphabet==0 ){
     sqlite3_result_error(
       context,
-      "alpa_string() selector must be en, English, ru, or Russian",
+      "alpa_string() language must be en, English, ru, or Russian",
       -1
     );
     return;
