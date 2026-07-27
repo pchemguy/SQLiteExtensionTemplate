@@ -1,3 +1,7 @@
+---
+url: https://chatgpt.com/c/6a678b26-6fc4-83eb-8ef2-30b26c58a6d6
+---
+
 # SQLite Alphabet Extension Template
 
 A compact SQLite C extension project that demonstrates how to:
