@@ -1,0 +1,11 @@
+name: pytestenv
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - pyyaml
+  - coverage
+  - pyinstrument
+  - pytest
+  - pytest-benchmark
+  - pytest-cov
