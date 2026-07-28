@@ -186,10 +186,10 @@ _ALLOWED_LEAF_EXPRESSIONS = frozenset(
 class GeneratorError(Exception):
     """Base exception for expected, user-facing generator failures.
     
-        Subclasses distinguish parsing, declaration extraction, type mapping, and
-        duplicate-symbol errors. ``main()`` converts this exception family into a
-        concise diagnostic and exit status ``2``.
-        """
+    Subclasses distinguish parsing, declaration extraction, type mapping, and
+    duplicate-symbol errors. ``main()`` converts this exception family into a
+    concise diagnostic and exit status ``2``.
+    """
 
 
 class ParseError(GeneratorError):
@@ -212,11 +212,11 @@ class DuplicateSymbolError(GeneratorError):
 class SourceLocation:
     """Normalized physical source location used in diagnostics and ordering.
     
-        Attributes:
-            file: Absolute source-file path.
-            line: One-based source line.
-            column: One-based source column.
-        """
+    Attributes:
+        file: Absolute source-file path.
+        line: One-based source line.
+        column: One-based source column.
+    """
     file: Path
     line: int
     column: int
@@ -226,13 +226,13 @@ class SourceLocation:
 class CType:
     """Libclang-independent normalized representation of a C type.
     
-        ``kind`` stores the libclang ``TypeKind`` name. ``spelling`` preserves the
-        normalized source-facing spelling, while ``canonical_spelling`` records the
-        normalized canonical spelling for diagnostics. Qualifiers are represented
-        explicitly. ``pointee`` recursively models pointer targets, and ``canonical``
-        retains the normalized canonical type for typedef fallback without keeping
-        live libclang objects.
-        """
+    ``kind`` stores the libclang ``TypeKind`` name. ``spelling`` preserves the
+    normalized source-facing spelling, while ``canonical_spelling`` records the
+    normalized canonical spelling for diagnostics. Qualifiers are represented
+    explicitly. ``pointee`` recursively models pointer targets, and ``canonical``
+    retains the normalized canonical type for typedef fallback without keeping
+    live libclang objects.
+    """
     kind: str
     spelling: str
     canonical_spelling: str
@@ -248,11 +248,11 @@ class CType:
 class Parameter:
     """Normalized function parameter.
     
-        Attributes:
-            name: Parameter spelling, possibly empty for an unnamed parameter.
-            c_type: Normalized semantic C type.
-            location: Physical source location used for diagnostics.
-        """
+    Attributes:
+        name: Parameter spelling, possibly empty for an unnamed parameter.
+        c_type: Normalized semantic C type.
+        location: Physical source location used for diagnostics.
+    """
     name: str
     c_type: CType
     location: SourceLocation
@@ -262,11 +262,11 @@ class Parameter:
 class Function:
     """Complete normalized model of one selected C function definition.
     
-        The model combines semantic information required for ABI validation with the
-        literal declaration copied from source. ``source_index`` preserves caller
-        source order without embedding machine-specific absolute paths into output.
-        ``declaration_tokens`` supports exact marker and calling-convention checks.
-        """
+    The model combines semantic information required for ABI validation with the
+    literal declaration copied from source. ``source_index`` preserves caller
+    source order without embedding machine-specific absolute paths into output.
+    ``declaration_tokens`` supports exact marker and calling-convention checks.
+    """
     name: str
     result_type: CType
     parameters: tuple[Parameter, ...]
@@ -281,10 +281,10 @@ class Function:
 class Arguments:
     """Validated command-line configuration.
     
-        Source and destination paths are absolute. ``clang_args`` preserves caller
-        order exactly. ``msvc_env`` controls expansion of the active MSVC
-        ``INCLUDE`` environment variable into additional system-include arguments.
-        """
+    Source and destination paths are absolute. ``clang_args`` preserves caller
+    order exactly. ``msvc_env`` controls expansion of the active MSVC
+    ``INCLUDE`` environment variable into additional system-include arguments.
+    """
     sources: tuple[Path, ...]
     ctypes_output: Path
     clang_args: tuple[str, ...]
@@ -297,10 +297,10 @@ class Arguments:
 def _display_path(path: Path) -> str:
     """Return a stable, readable path for diagnostics.
     
-        Paths inside the current working directory are rendered relatively;
-        external paths remain absolute. This function affects diagnostics only and
-        never generated output ordering.
-        """
+    Paths inside the current working directory are rendered relatively;
+    external paths remain absolute. This function affects diagnostics only and
+    never generated output ordering.
+    """
     try:
         return str(path.resolve().relative_to(Path.cwd().resolve()))
     except ValueError:
@@ -318,30 +318,30 @@ def _location_text(location: SourceLocation) -> str:
 def _error(message: str) -> GeneratorError:
     """Construct a generic ``GeneratorError`` for a supplied message.
     
-        This compatibility helper centralizes creation of the base error type.
-        """
+    This compatibility helper centralizes creation of the base error type.
+    """
     return GeneratorError(message)
 
 
 def parse_args(argv: Sequence[str] | None = None) -> Arguments:
     """Parse and validate command-line arguments.
     
-        The procedure validates the marker as a C identifier, resolves and checks
-        every source path, resolves the output path, and requires the output parent
-        directory to exist. Argparse handles help, version output, and malformed CLI
-        syntax.
+    The procedure validates the marker as a C identifier, resolves and checks
+    every source path, resolves the output path, and requires the output parent
+    directory to exist. Argparse handles help, version output, and malformed CLI
+    syntax.
     
-        Args:
-            argv: Optional argument sequence excluding the program name. ``None``
-                reads arguments from ``sys.argv``.
+    Args:
+        argv: Optional argument sequence excluding the program name. ``None``
+            reads arguments from ``sys.argv``.
     
-        Returns:
-            An immutable ``Arguments`` instance.
+    Returns:
+        An immutable ``Arguments`` instance.
     
-        Raises:
-            SystemExit: Through argparse for invalid invocation, help, or version.
-            argparse.ArgumentTypeError: If source-path normalization fails.
-        """
+    Raises:
+        SystemExit: Through argparse for invalid invocation, help, or version.
+        argparse.ArgumentTypeError: If source-path normalization fails.
+    """
     parser = argparse.ArgumentParser(
         prog=PROGRAM_NAME,
         description=(
@@ -430,17 +430,17 @@ def parse_args(argv: Sequence[str] | None = None) -> Arguments:
 def get_msvc_include_args() -> tuple[str, ...]:
     """Translate the active MSVC ``INCLUDE`` variable into Clang arguments.
     
-        Each unique, existing directory becomes a two-element ``("-imsvc", path)``
-        pair. Empty entries and duplicates are ignored while original environment
-        order is retained.
+    Each unique, existing directory becomes a two-element ``("-imsvc", path)``
+    pair. Empty entries and duplicates are ignored while original environment
+    order is retained.
     
-        Returns:
-            A flat immutable tuple suitable for appending to libclang parse args.
+    Returns:
+        A flat immutable tuple suitable for appending to libclang parse args.
     
-        Raises:
-            GeneratorError: If called outside Windows, ``INCLUDE`` is missing or
-                empty, a listed path is not a directory, or no usable paths remain.
-        """
+    Raises:
+        GeneratorError: If called outside Windows, ``INCLUDE`` is missing or
+            empty, a listed path is not a directory, or no usable paths remain.
+    """
     if os.name != "nt":
         raise GeneratorError(
             "--msvc-env is supported only on Windows"
@@ -473,7 +473,7 @@ def get_msvc_include_args() -> tuple[str, ...]:
             continue
 
         seen.add(key)
-        arguments.extend(("-imsvc", str(path)))
+        arguments.extend(("-isystem", str(path)))
 
     if not arguments:
         raise GeneratorError(
@@ -486,9 +486,9 @@ def get_msvc_include_args() -> tuple[str, ...]:
 def build_effective_clang_args(arguments: Arguments) -> tuple[str, ...]:
     """Build the exact argument tuple passed to every libclang parse.
     
-        User-supplied arguments are retained in original order. When ``msvc_env`` is
-        enabled, validated MSVC system include arguments are appended.
-        """
+    User-supplied arguments are retained in original order. When ``msvc_env`` is
+    enabled, validated MSVC system include arguments are appended.
+    """
     result = list(arguments.clang_args)
 
     if arguments.msvc_env:
@@ -500,13 +500,13 @@ def build_effective_clang_args(arguments: Arguments) -> tuple[str, ...]:
 def normalize_source_paths(values: Iterable[str]) -> tuple[Path, ...]:
     """Resolve, validate, and deduplicate source-file paths.
     
-        Duplicate detection uses ``os.path.normcase`` so Windows paths differing
-        only by case are treated as identical. Input order is preserved.
+    Duplicate detection uses ``os.path.normcase`` so Windows paths differing
+    only by case are treated as identical. Input order is preserved.
     
-        Raises:
-            argparse.ArgumentTypeError: If a path is missing, not a regular file, or
-                duplicates an earlier normalized path.
-        """
+    Raises:
+        argparse.ArgumentTypeError: If a path is missing, not a regular file, or
+            duplicates an earlier normalized path.
+    """
     result: list[Path] = []
     seen: dict[str, Path] = {}
 
@@ -592,13 +592,13 @@ def parse_translation_unit(
 ) -> TranslationUnit:
     """Parse one C source file as an independent libclang translation unit.
     
-        Fatal and error diagnostics are collected, sorted, and raised together.
-        Warnings and lower severities remain non-fatal.
+    Fatal and error diagnostics are collected, sorted, and raised together.
+    Warnings and lower severities remain non-fatal.
     
-        Raises:
-            ParseError: If libclang invocation fails or reports an error/fatal
-                diagnostic.
-        """
+    Raises:
+        ParseError: If libclang invocation fails or reports an error/fatal
+            diagnostic.
+    """
     try:
         translation_unit = index.parse(
             str(source),
@@ -670,10 +670,10 @@ def _source_location(cursor: Cursor) -> SourceLocation:
 def _find_function_body(cursor: Cursor) -> Cursor:
     """Return the unique compound-statement cursor forming a function body.
     
-        Raises:
-            DeclarationExtractionError: If no body or multiple direct body cursors
-                are found.
-        """
+    Raises:
+        DeclarationExtractionError: If no body or multiple direct body cursors
+            are found.
+    """
     bodies = [
         child
         for child in cursor.get_children()
@@ -715,11 +715,11 @@ def _declaration_tokens(
 ) -> tuple[str, ...]:
     """Return tokens confined to one function's declaration byte range.
     
-        Tokens before ``declaration_start_offset`` are discarded, and scanning stops
-        at ``body_start_offset``. Enforcing both boundaries prevents tokens from
-        earlier declarations from being counted when libclang exposes a broader
-        token extent.
-        """
+    Tokens before ``declaration_start_offset`` are discarded, and scanning stops
+    at ``body_start_offset``. Enforcing both boundaries prevents tokens from
+    earlier declarations from being counted when libclang exposes a broader
+    token extent.
+    """
     tokens: list[str] = []
 
     for token in cursor.get_tokens():
@@ -744,19 +744,19 @@ def extract_literal_declaration(
 ) -> tuple[str, tuple[str, ...]]:
     """Extract one function declaration exactly from the original source bytes.
     
-        The declaration starts at the function cursor extent and ends at the
-        compound-statement body's opening location. UTF-8 is decoded strictly;
-        line endings are normalized to LF, trailing whitespace is removed, and
-        leading/trailing blank lines are discarded. Semantic reformatting is not
-        performed.
+    The declaration starts at the function cursor extent and ends at the
+    compound-statement body's opening location. UTF-8 is decoded strictly;
+    line endings are normalized to LF, trailing whitespace is removed, and
+    leading/trailing blank lines are discarded. Semantic reformatting is not
+    performed.
     
-        Returns:
-            ``(declaration_text, declaration_tokens)``.
+    Returns:
+        ``(declaration_text, declaration_tokens)``.
     
-        Raises:
-            DeclarationExtractionError: For invalid extents, unreadable source,
-                invalid UTF-8, or an empty declaration.
-        """
+    Raises:
+        DeclarationExtractionError: For invalid extents, unreadable source,
+            invalid UTF-8, or an empty declaration.
+    """
     location = _source_location(cursor)
     body = _find_function_body(cursor)
 
@@ -819,13 +819,13 @@ def _typedef_name(c_type: Type) -> str | None:
 def normalize_clang_type(c_type: Type, depth: int = 0) -> CType:
     """Convert a live libclang ``Type`` into the immutable internal model.
     
-        Pointer targets are normalized recursively. Typedefs retain both their
-        declared identity and a normalized canonical fallback so ABI-significant
-        names such as ``size_t`` can be recognized before canonicalization.
+    Pointer targets are normalized recursively. Typedefs retain both their
+    declared identity and a normalized canonical fallback so ABI-significant
+    names such as ``size_t`` can be recognized before canonicalization.
     
-        Raises:
-            UnsupportedTypeError: If recursive nesting exceeds the defensive limit.
-        """
+    Raises:
+        UnsupportedTypeError: If recursive nesting exceeds the defensive limit.
+    """
     if depth > 64:
         raise UnsupportedTypeError(
             f"type nesting exceeds the supported depth: {c_type.spelling!r}"
@@ -926,18 +926,18 @@ def find_selected_functions(
 ) -> list[Function]:
     """Find and normalize marked function definitions in one translation unit.
     
-        Included-header cursors, declarations without bodies, unmarked functions,
-        and definitions from other physical files are ignored. A marked function
-        must have external linkage under the effective parse configuration.
+    Included-header cursors, declarations without bodies, unmarked functions,
+    and definitions from other physical files are ignored. A marked function
+    must have external linkage under the effective parse configuration.
     
-        Returns:
-            Selected functions in AST traversal order.
+    Returns:
+        Selected functions in AST traversal order.
     
-        Raises:
-            GeneratorError: For unnamed selected functions or non-external marked
-                definitions.
-            DeclarationExtractionError: If declaration recovery fails.
-        """
+    Raises:
+        GeneratorError: For unnamed selected functions or non-external marked
+            definitions.
+        DeclarationExtractionError: If declaration recovery fails.
+    """
     result: list[Function] = []
 
     for cursor in walk_cursors(translation_unit.cursor):
@@ -1035,21 +1035,21 @@ def map_ctypes_type(
 ) -> str:
     """Map one normalized C type to a safe generated ``ctypes`` expression.
     
-        Typedef names with explicit ABI mappings take precedence over canonical
-        fallback. Pointer mapping is recursive; ``void *`` is represented by
-        ``ctypes.c_void_p``. Unsupported types fail rather than being weakened or
-        guessed.
+    Typedef names with explicit ABI mappings take precedence over canonical
+    fallback. Pointer mapping is recursive; ``void *`` is represented by
+    ``ctypes.c_void_p``. Unsupported types fail rather than being weakened or
+    guessed.
     
-        Args:
-            c_type: Normalized C type.
-            for_result: Whether the type is a function result, allowing bare
-                ``void`` to map to ``None``.
-            function: Owning function for diagnostics.
-            position: Human-readable parameter or return position.
+    Args:
+        c_type: Normalized C type.
+        for_result: Whether the type is a function result, allowing bare
+            ``void`` to map to ``None``.
+        function: Owning function for diagnostics.
+        position: Human-readable parameter or return position.
     
-        Raises:
-            UnsupportedTypeError: If no supported mapping exists.
-        """
+    Raises:
+        UnsupportedTypeError: If no supported mapping exists.
+    """
     if c_type.kind == "VOID":
         if for_result:
             return "None"
@@ -1100,9 +1100,9 @@ def map_ctypes_type(
 def _validate_expression(expression: str) -> bool:
     """Validate that a generated type expression uses only the closed vocabulary.
     
-        Accepted expressions are enumerated scalar leaves, ``None``, and recursively
-        nested ``ctypes.POINTER(...)`` applications.
-        """
+    Accepted expressions are enumerated scalar leaves, ``None``, and recursively
+    nested ``ctypes.POINTER(...)`` applications.
+    """
     if expression in _ALLOWED_LEAF_EXPRESSIONS:
         return True
 
@@ -1117,14 +1117,14 @@ def _validate_expression(expression: str) -> bool:
 def validate_function(function: Function) -> tuple[tuple[str, ...], str]:
     """Validate one selected function and compute its generated type expressions.
     
-        Variadic functions and recognized non-default calling conventions are
-        rejected. Every parameter and result is mapped through the strict ABI
-        mapper, and each resulting expression is checked against the closed output
-        vocabulary.
+    Variadic functions and recognized non-default calling conventions are
+    rejected. Every parameter and result is mapped through the strict ABI
+    mapper, and each resulting expression is checked against the closed output
+    vocabulary.
     
-        Returns:
-            ``(argument_expressions, result_expression)``.
-        """
+    Returns:
+        ``(argument_expressions, result_expression)``.
+    """
     if function.variadic:
         raise GeneratorError(
             f'{_location_text(function.location)}: selected function '
@@ -1213,10 +1213,10 @@ def render_function_binding(
 def render_module(functions: Sequence[Function]) -> str:
     """Render the complete deterministic generated Python module.
     
-        Binding blocks follow source argument order and physical source position.
-        ``GENERATED_FUNCTIONS`` remains lexicographically sorted. Type validation is
-        completed before any text for a function is emitted.
-        """
+    Binding blocks follow source argument order and physical source position.
+    ``GENERATED_FUNCTIONS`` remains lexicographically sorted. Type validation is
+    completed before any text for a function is emitted.
+    """
     ordered = sorted(
         functions,
         key=lambda item: (
@@ -1293,10 +1293,10 @@ def validate_generated_module(
 ) -> None:
     """Validate generated Python syntax and model-level name uniqueness.
     
-        Raises:
-            GeneratorError: If no functions exist, generated code fails to compile,
-                or internal symbol uniqueness is violated.
-        """
+    Raises:
+        GeneratorError: If no functions exist, generated code fails to compile,
+            or internal symbol uniqueness is violated.
+    """
     if not functions:
         raise GeneratorError(
             "no marked function definitions were found"
@@ -1320,16 +1320,16 @@ def validate_generated_module(
 def write_output_atomically(path: Path, text: str) -> bool:
     """Install generated text atomically when its bytes have changed.
     
-        The function compares UTF-8 bytes first, writes changed content to a
-        temporary file in the destination directory, and replaces the destination
-        with ``os.replace()``.
+    The function compares UTF-8 bytes first, writes changed content to a
+    temporary file in the destination directory, and replaces the destination
+    with ``os.replace()``.
     
-        Returns:
-            ``True`` when the destination was updated, otherwise ``False``.
+    Returns:
+        ``True`` when the destination was updated, otherwise ``False``.
     
-        Raises:
-            GeneratorError: For invalid destination type or read/write failures.
-        """
+    Raises:
+        GeneratorError: For invalid destination type or read/write failures.
+    """
     encoded = text.encode("utf-8")
 
     if path.exists():
@@ -1389,18 +1389,18 @@ def check_output(path: Path, text: str) -> bool:
 def generate(arguments: Arguments) -> tuple[str, tuple[Function, ...]]:
     """Execute parsing, selection, validation, and rendering.
     
-        All sources are parsed independently with one shared libclang index and the
-        same effective argument tuple. Selected functions are combined, checked for
-        duplicates, rendered, and syntax-validated.
+    All sources are parsed independently with one shared libclang index and the
+    same effective argument tuple. Selected functions are combined, checked for
+    duplicates, rendered, and syntax-validated.
     
-        Returns:
-            ``(generated_text, selected_functions)``.
+    Returns:
+        ``(generated_text, selected_functions)``.
     
-        Raises:
-            GeneratorError: If no marked functions are found or any validation step
-                fails.
-            ParseError: If a translation unit cannot be parsed successfully.
-        """
+    Raises:
+        GeneratorError: If no marked functions are found or any validation step
+            fails.
+        ParseError: If a translation unit cannot be parsed successfully.
+    """
     effective_clang_args = build_effective_clang_args(arguments)
 
     if arguments.verbose:
@@ -1464,11 +1464,11 @@ def _print_error(message: str) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the command-line workflow and return the documented exit status.
     
-        Expected generator failures are converted to concise diagnostics without
-        tracebacks. Under ``--check``, stale or missing output returns ``1``;
-        otherwise successful generation returns ``0``. All operational failures
-        return ``2``.
-        """
+    Expected generator failures are converted to concise diagnostics without
+    tracebacks. Under ``--check``, stale or missing output returns ``1``;
+    otherwise successful generation returns ``0``. All operational failures
+    return ``2``.
+    """
     try:
         arguments = parse_args(argv)
         generated_text, _ = generate(arguments)
