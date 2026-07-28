@@ -571,7 +571,7 @@ set "OPT_XTRA="
 if not defined USE_ICU      (set "USE_ICU=1")
 if not defined USE_ZLIB     (set "USE_ZLIB=1")
 if not defined SQLITE_EXTRA (set "SQLITE_EXTRA=1")
-if not defined USE_TEST     (set "USE_TEST=1")
+if not defined USE_TEST     (set "USE_TEST=0")
 
 set "MSG=USE_ICU:      %USE_ICU% - ICU is"
 if "%USE_ICU%"=="0" (
@@ -618,6 +618,7 @@ call :MKDIR__DIR "%SQLITEDIR%" || exit /b !ERRORLEVEL!
 set "THIRDDIR=%SQLITEDIR%\compat"
 call :MKDIR__DIR "%THIRDDIR%" || exit /b !ERRORLEVEL!
 set "BUILDDIR=%OUT%\build"
+if "%USE_TEST%"=="1" (set "BUILDDIR=%BUILDDIR%_test")
 call :MKDIR__DIR "%BUILDDIR%" || exit /b !ERRORLEVEL!
 set "TSRC=%BUILDDIR%\tsrc"
 call :MKDIR__DIR "%TSRC%" || exit /b !ERRORLEVEL!
