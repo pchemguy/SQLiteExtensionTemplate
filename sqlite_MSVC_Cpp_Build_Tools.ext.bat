@@ -571,7 +571,7 @@ set "OPT_XTRA="
 if not defined USE_ICU      (set "USE_ICU=1")
 if not defined USE_ZLIB     (set "USE_ZLIB=1")
 if not defined SQLITE_EXTRA (set "SQLITE_EXTRA=1")
-if not defined USE_TEST     (set "USE_TEST=0")
+if not defined USE_TEST     (set "USE_TEST=1")
 
 set "MSG=USE_ICU:      %USE_ICU% - ICU is"
 if "%USE_ICU%"=="0" (
