@@ -535,17 +535,24 @@ def _source_bytes(path: Path, cache: dict[Path, bytes]) -> bytes:
 
 def _declaration_tokens(
     cursor: Cursor,
+    declaration_start_offset: int,
     body_start_offset: int,
 ) -> tuple[str, ...]:
     tokens: list[str] = []
+
     for token in cursor.get_tokens():
         try:
             token_start = int(token.extent.start.offset)
         except Exception:
             token_start = int(token.location.offset)
+
+        if token_start < declaration_start_offset:
+            continue
         if token_start >= body_start_offset:
             break
+
         tokens.append(token.spelling)
+
     return tuple(tokens)
 
 
@@ -596,7 +603,11 @@ def extract_literal_declaration(
             f'"{cursor.spelling}"'
         )
 
-    return declaration, _declaration_tokens(cursor, body_start_offset)
+    return declaration, _declaration_tokens(
+        cursor,
+        start_offset,
+        body_start_offset,
+    )
 
 
 def _typedef_name(c_type: Type) -> str | None:
@@ -1094,8 +1105,8 @@ def generate(arguments: Arguments) -> tuple[str, tuple[Function, ...]]:
     if arguments.verbose:
         print(
             "clang arguments:",
-            " ".join(arguments.clang_args)
-            if arguments.clang_args
+            " ".join(effective_clang_args)
+            if effective_clang_args
             else "(none)",
         )
 
