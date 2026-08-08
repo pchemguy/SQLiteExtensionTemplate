@@ -1,5 +1,7 @@
 ---
-url: https://chatgpt.com/c/6a678b26-6fc4-83eb-8ef2-30b26c58a6d6
+urls:
+ - https://chatgpt.com/c/6a678b26-6fc4-83eb-8ef2-30b26c58a6d6
+ - https://chatgpt.com/c/6a773681-d890-83eb-b391-89cd1386362f
 ---
 
 # SQLite Alphabet Extension Template
