@@ -10,8 +10,6 @@
 ** CTD_TEST_API and CTD_TEST_DATA_API, and is not an independent C client header.
 **
 
-
-
 ** Canonical API pattern catalogue:
 **
 ** The nine contract families below are ordered from value-only calls through
