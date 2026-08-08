@@ -1182,14 +1182,24 @@ exit /b %ERRORLEVEL%
 
 set "SECTION=EXTRA_SRC_THIRD"
 
-set OPT_XTRA=%OPT_XTRA%^
+set OPT_XTRA=%OPT_XTRA%      ^
+    -DCTD_TEST               ^
+    -DCTD_BUILD_LIB          ^
+    -DAB_TEST                ^
+    -DAB_BUILD_LIB           ^
     -DSQLITE_ENABLE_ALPHABET
 
+
 set SOURCES=^
+    "%PROJDIR%\src\ctd.c" ^
+    "%PROJDIR%\src\ctd.h" ^
+    "%PROJDIR%\src\ctd_api.h" ^
+    "%PROJDIR%\src\alphabet.c" ^
     "%PROJDIR%\src\alphabet.h" ^
-    "%PROJDIR%\src\alphabet.c"
+    "%PROJDIR%\src\alphabet_api.h"
 
 set MISC_EXT=^
+    "ctd.c" ^
     "alphabet.c"
 
 echo {INFO} ========== Copy MISC_EXT ===========
@@ -1209,6 +1219,7 @@ echo {INFO} ========== Bundle MISC_EXT ===========
 echo {INFO} ========== Set EXTRA_SRC for extended SQLite build ===========
 
 set EXTRA_SRC=%EXTRA_SRC% ^
+    ""%TSRC%\ctd.c""      ^
     ""%TSRC%\alphabet.c""
 
 echo ~~~~~ %SECTION% ~~~~~
@@ -1259,6 +1270,7 @@ del /Q "%BINDIR%\*" 2>nul
 if exist "%BUILDDIR%\sqlite3.dll" copy /Y "%BUILDDIR%\sqlite3.dll" "%BINDIR%"
 if exist "%BUILDDIR%\sqlite3.exe" copy /Y "%BUILDDIR%\sqlite3.exe" "%BINDIR%"
 if exist "%BUILDDIR%\sqlite3.def" copy /Y "%BUILDDIR%\sqlite3.def" "%BINDIR%"
+if exist "%BUILDDIR%\sqlite3.lib" copy /Y "%BUILDDIR%\sqlite3.lib" "%BINDIR%"
 if "%USE_ICU%"=="1" (copy /Y "%ICUBINDIR%\icu*.dll" "%BINDIR%")
 if "%USE_ZLIB%"=="1" (copy /Y "%ZLIBDIR%\zlib1.dll"  "%BINDIR%")
 echo ---------- Copied  binaries -----------
