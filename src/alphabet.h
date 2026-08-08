@@ -29,8 +29,8 @@
   "abcdefghijklmnopqrstuvwxyz"
 
 #define CYRILLIC_UTF8 \
-  "ΐΑΒΓΔΕ¨ΖΗΘΙΚΛΜΝΞΟΠΡÒΣΤΥΦΧΨΩΪΫάέήί" \
-  "ΰαβγδεΈζηθικλμνξοπρςστυφχψωϊϋόύώÿ"
+  "ΠΠ‘Π’Π“Π”Π•ΠΠ–Π—ΠΠ™ΠΠ›ΠΠΠΠΠ Π΅ΠΆΠ£Π¤Π¥Π¦Π§Π¨Π©ΠªΠ«Π¬Π­Π®Π―" \
+  "Π°Π±Π²Π³Π΄ΠµΡ‘Π¶Π·ΠΈΠΉΠΊΠ»ΠΌΠ½ΠΎΠΏΡ€ΡΡ‚ΡƒΡ„Ρ…Ρ†Ρ‡ΡΡ‰ΡΡ‹ΡΡΡΡ"
 
 PYTEST_API int ab_utf8_byte_count(const char *zText);
 PYTEST_API int64_t ab_utf8_length(const char *zText);
