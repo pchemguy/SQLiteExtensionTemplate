@@ -4,11 +4,13 @@ build-backend = "hatchling.build"
 
 
 [project]
-name = "pytestenv"
+name = "alphabet"
 version = "0.0.0"
 description = "Minimal Pytest environment."
 
 dependencies = [
+    "cffi",
+    "setuptools",
 ]
 
 
@@ -23,6 +25,7 @@ test = [
 lint = [
     "ruff",
     "mypy",
+    "types-cffi",
 ]
 
 tools = [
@@ -31,12 +34,20 @@ tools = [
 ]
 
 dev = [
-    "pytestenv[test,lint,tools]",
+    "pytest",
+    "pytest-cov",
+    "pytest-benchmark",
+    "coverage",
+    "ruff",
+    "mypy",
+    "types-cffi",
+    "hatch",
+    "uv",
 ]
 
 
 [tool.hatch.build.targets.wheel]
-packages = ["pytestenv/src/pytestenv"]
+packages = ["alphabet/src/alphabet"]
 
 
 [tool.ruff]
@@ -98,7 +109,7 @@ unfixable = [
 
 [tool.ruff.lint.per-file-ignores]
 # Tests can be looser.
-"tests/**/*.py" = [
+"alphabet/tests/**/*.py" = [
     "E402",   # imports not at top (fixtures sometimes)
     "F811",   # redefinition (pytest param fixtures can trip this)
     "B018",   # useless expression (sometimes used as markers)
@@ -118,9 +129,8 @@ combine-as-imports = true
 
 
 [tool.pytest.ini_options]
-minversion = "8.0"
 addopts = "-ra -q"
-testpaths = ["pytestenv/tests"]
+testpaths = ["alphabet/tests"]
 
 
 [tool.mypy]
