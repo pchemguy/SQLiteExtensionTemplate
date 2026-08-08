@@ -571,7 +571,7 @@ set "OPT_XTRA="
 if not defined USE_ICU      (set "USE_ICU=1")
 if not defined USE_ZLIB     (set "USE_ZLIB=1")
 if not defined SQLITE_EXTRA (set "SQLITE_EXTRA=1")
-if not defined USE_TEST     (set "USE_TEST=0")
+if not defined USE_TEST     (set "USE_TEST=1")
 
 set "MSG=USE_ICU:      %USE_ICU% - ICU is"
 if "%USE_ICU%"=="0" (
@@ -622,6 +622,8 @@ if "%USE_TEST%"=="1" (set "BUILDDIR=%BUILDDIR%_test")
 call :MKDIR__DIR "%BUILDDIR%" || exit /b !ERRORLEVEL!
 set "TSRC=%BUILDDIR%\tsrc"
 call :MKDIR__DIR "%TSRC%" || exit /b !ERRORLEVEL!
+set "INCDIR=%OUT%\include"
+call :MKDIR__DIR "%INCDIR%" || exit /b !ERRORLEVEL!
 set "BINDIR=%OUT%\bin"
 call :MKDIR__DIR "%BINDIR%" || exit /b !ERRORLEVEL!
 
@@ -1185,8 +1187,8 @@ set "SECTION=EXTRA_SRC_THIRD"
 set OPT_XTRA=%OPT_XTRA%      ^
     -DCTD_TEST               ^
     -DCTD_BUILD_LIB          ^
-    -DAB_TEST                ^
-    -DAB_BUILD_LIB           ^
+    -DALPHABET_TEST          ^
+    -DALPHABET_BUILD_LIB     ^
     -DSQLITE_ENABLE_ALPHABET
 
 
@@ -1271,6 +1273,8 @@ if exist "%BUILDDIR%\sqlite3.dll" copy /Y "%BUILDDIR%\sqlite3.dll" "%BINDIR%"
 if exist "%BUILDDIR%\sqlite3.exe" copy /Y "%BUILDDIR%\sqlite3.exe" "%BINDIR%"
 if exist "%BUILDDIR%\sqlite3.def" copy /Y "%BUILDDIR%\sqlite3.def" "%BINDIR%"
 if exist "%BUILDDIR%\sqlite3.lib" copy /Y "%BUILDDIR%\sqlite3.lib" "%BINDIR%"
+copy /Y "%BUILDDIR%\sqlite3*.h" "%INCDIR%"
+copy /Y "%PROJDIR%\src\*.h" "%INCDIR%"
 if "%USE_ICU%"=="1" (copy /Y "%ICUBINDIR%\icu*.dll" "%BINDIR%")
 if "%USE_ZLIB%"=="1" (copy /Y "%ZLIBDIR%\zlib1.dll"  "%BINDIR%")
 echo ---------- Copied  binaries -----------

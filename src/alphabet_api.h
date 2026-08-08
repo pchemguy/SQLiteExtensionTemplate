@@ -2,7 +2,7 @@
 ** alphabet_api.h
 **
 ** This declaration catalogue is included by alphabet.h, which supplies
-** AB_TEST_API and AB_TEST_DATA_API, and is not an independent C client header.
+** ALPHABET_TEST_API and ALPHABET_TEST_DATA_API, and is not an independent C client header.
 **
 */
 
@@ -29,7 +29,7 @@
 **   complete UTF-8 sequence, continuation bytes, overlong encodings, Unicode
 **   range, or termination.
 */
-AB_TEST_API int ab_utf8_byte_count(const char *zText);
+ALPHABET_TEST_API int ab_utf8_byte_count(const char *zText);
 
 /*
 ** Return the number of Unicode code points in a NUL-terminated UTF-8 string.
@@ -53,7 +53,7 @@ AB_TEST_API int ab_utf8_byte_count(const char *zText);
 ** Ownership:
 **   zText is borrowed and is neither retained nor modified.
 */
-AB_TEST_API int64_t ab_utf8_length(const char *zText);
+ALPHABET_TEST_API int64_t ab_utf8_length(const char *zText);
 
 /*
 ** Return the byte offset of Unicode code-point index i within a NUL-terminated
@@ -88,7 +88,7 @@ AB_TEST_API int64_t ab_utf8_length(const char *zText);
 ** Ownership:
 **   zText is borrowed and is neither retained nor modified.
 */
-AB_TEST_API int ab_utf8_byte_offset(const char *zText, int64_t i);
+ALPHABET_TEST_API int ab_utf8_byte_offset(const char *zText, int64_t i);
 
 /*
 ** Resolve a language name to the corresponding built-in UTF-8 alphabet.
@@ -120,6 +120,6 @@ AB_TEST_API int ab_utf8_byte_offset(const char *zText, int64_t i);
 ** Side effects:
 **   None.
 */
-AB_TEST_API const char *ab_alphabet_select(const char *zLanguage);
+ALPHABET_TEST_API const char *ab_alphabet_select(const char *zLanguage);
 
 #endif /* ALPHABET_API_H */

@@ -31,7 +31,7 @@
 /*
 ** Return the byte length of the UTF-8 code point beginning at z.
 */
-AB_TEST_API int ab_utf8_byte_count(const char *zText) {
+ALPHABET_TEST_API int ab_utf8_byte_count(const char *zText) {
     const unsigned char *z = (const unsigned char *)zText;
     
     if (z[0] < 0x80) {return 1;}
@@ -43,7 +43,7 @@ AB_TEST_API int ab_utf8_byte_count(const char *zText) {
 /*
 ** Return the number of Unicode code points in a valid UTF-8 string.
 */
-AB_TEST_API int64_t ab_utf8_length(const char *zText) {
+ALPHABET_TEST_API int64_t ab_utf8_length(const char *zText) {
     int64_t n = 0;
     
     while (*zText != 0) {
@@ -57,7 +57,7 @@ AB_TEST_API int64_t ab_utf8_length(const char *zText) {
 ** Return the byte offset corresponding to Unicode code-point index i.
 ** The caller guarantees 0 <= i <= ab_utf8_length(zText).
 */
-AB_TEST_API int ab_utf8_byte_offset(const char *zText, int64_t i) {
+ALPHABET_TEST_API int ab_utf8_byte_offset(const char *zText, int64_t i) {
     const char *zStart = zText;
     
     while (i > 0) {
@@ -71,7 +71,7 @@ AB_TEST_API int ab_utf8_byte_offset(const char *zText, int64_t i) {
 ** Resolve language to one of the supported alphabet strings.
 ** Return NULL for an unsupported language.
 */
-AB_TEST_API const char *ab_alphabet_select(const char *zLanguage) {
+ALPHABET_TEST_API const char *ab_alphabet_select(const char *zLanguage) {
     if (
            sqlite3_stricmp(zLanguage, "en") == 0
         || sqlite3_stricmp(zLanguage, "English") == 0
