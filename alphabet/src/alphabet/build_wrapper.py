@@ -17,6 +17,8 @@ For each discovered component, the generated CFFI wrapper:
 
 The builder targets CFFI out-of-line API mode with dynamic linking to
 pre-built C libraries.
+
+https://chatgpt.com/c/6a7813fc-5d80-83eb-a476-70760939b048
 """
 
 import platform
