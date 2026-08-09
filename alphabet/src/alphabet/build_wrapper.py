@@ -18,7 +18,6 @@ class Config:
     repo_libimport: Path
     repo_libstatic: Path
     c_src: Path
-    sources: list[str]
     wrapper_c_components: list[str]
     extra_compile_args: list[str]
     extra_link_args: list[str]
@@ -36,8 +35,9 @@ class Config:
         self.repo_libimport = self.repo_root / "out" / "lib" / "import"
         self.repo_libstatic = self.repo_root / "out" / "lib" / "static"
 
-        self.sources = []
-        
+        if not self.c_src.is_dir():
+            raise NotADirectoryError(f"C source directory does not exist: {self.c_src}")
+
         self.wrapper_c_components = []
         self.extra_compile_args = []
         self.extra_link_args = []
@@ -103,6 +103,9 @@ class Config:
         
         self.wrapper_c_components = names
 
+        if not names:
+            raise RuntimeError("No wrapper components found.")
+
     def get_c_macros(
         self,
         *extra_c_macros: tuple[str, str | None]) -> list[tuple[str, str | None]]:
@@ -160,6 +163,9 @@ class Config:
             library_dirs.append(str(self.repo_libimport))
     
         for directory in extra_library_dirs:
+            if not path:
+                continue
+            
             path = Path(directory)
     
             if not path.is_dir():
@@ -170,8 +176,8 @@ class Config:
         return library_dirs
 
     def get_c_includes(self, *extra_c_includes: str) -> str:
-        includes = [f'#include "{name}.h"'for name in self.wrapper_c_components]
-    
+        includes = [f'#include "{name}.h"' for name in self.wrapper_c_components]                      
+
         for header in extra_c_includes:
             if not isinstance(header, str):
                 raise TypeError("C include must be str")
@@ -228,7 +234,7 @@ def load_cdef_header(path: str | Path) -> str:
     header_path = Path(path)
     declarations = header_path.read_text(encoding="utf-8")
 
-    # Remove indiscriminately C-preprocessor directives from a dual-use API header.
+    # Remove supported preprocessor directives from a dual-use API header.
     pattern = r"^[ \t]*#[ \t]*(?:if|ifdef|ifndef|endif|define)\b.*(?:\r?\n|$)"
     declarations = re.sub(pattern, "", declarations, flags=re.MULTILINE)
     pattern = r"^[A-Z][A-Z0-9_]*_TEST_DATA_API[ \t]+"
@@ -249,7 +255,7 @@ def main() -> int:
     ffibuilder.set_source(
         config.wrapper_name,
         config.get_c_includes(),
-        sources=config.sources,
+        sources=[],
         include_dirs=config.get_include_dirs(),
         libraries=config.get_libraries(),
         library_dirs=config.get_library_dirs(),
