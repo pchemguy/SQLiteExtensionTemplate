@@ -1,8 +1,45 @@
-from collections.abc import Callable, Iterator
+from __future__ import annotations
+
 import sqlite3
+import sys
+from collections.abc import Callable, Iterator
+from importlib import import_module
+from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 import pytest
+
+
+ALPHABET_SOURCE_ROOT = Path(__file__).parents[1] / "src"
+ALPHABET_MODULE_DIRECTORY = ALPHABET_SOURCE_ROOT / "alphabet"
+sys.path[:0] = [str(ALPHABET_SOURCE_ROOT), str(ALPHABET_MODULE_DIRECTORY)]
+
+
+@pytest.fixture(scope="session")
+def wrapper_module() -> ModuleType:
+    """Import the freshly built CFFI wrapper for the alphabet helpers."""
+    return import_module("_alphabet_wrapper")
+
+
+@pytest.fixture
+def ffi(wrapper_module: ModuleType) -> Any:
+    return wrapper_module.ffi
+
+
+@pytest.fixture
+def lib(wrapper_module: ModuleType) -> Any:
+    return wrapper_module.lib
+
+
+@pytest.fixture
+def db() -> Iterator[sqlite3.Connection]:
+    """Provide an isolated SQLite connection using the test SQLite build."""
+    connection = sqlite3.connect(":memory:")
+    try:
+        yield connection
+    finally:
+        connection.close()
 
 
 @pytest.fixture

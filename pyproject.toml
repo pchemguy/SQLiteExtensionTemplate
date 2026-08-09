@@ -124,7 +124,7 @@ unfixable = [
 
 [tool.ruff.lint.isort]
 # Keep imports stable across the repo; update if your top-level package differs.
-known-first-party = ["gridpet"]
+known-first-party = ["alphabet"]
 combine-as-imports = true
 
 
