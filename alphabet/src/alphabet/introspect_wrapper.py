@@ -2,12 +2,9 @@ from __future__ import annotations
 
 # import os
 # import sys
-
+#
 # sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # sys.path.insert(0, os.sep.join(os.path.abspath(__file__).split(os.sep)[:-2]))
-
-# import json
-# from pprint import pprint
 
 from importlib import import_module
 from typing import Any
@@ -20,7 +17,6 @@ _cffi_wrapper = (
     else import_module("_cffi_wrapper")
 )
 
-# from alphabet._alphabet_wrapper import ffi, lib
 from introspect import cffi_model, database
 
 
