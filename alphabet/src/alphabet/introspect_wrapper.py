@@ -1,22 +1,32 @@
 from __future__ import annotations
 
-import os
-import sys
-import json
-from typing import Any
-import inspect
-from pprint import pprint
+# import os
+# import sys
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.sep.join(os.path.abspath(__file__).split(os.sep)[:-2]))
+# sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# sys.path.insert(0, os.sep.join(os.path.abspath(__file__).split(os.sep)[:-2]))
+
+# import json
+# from pprint import pprint
+
+from importlib import import_module
+from typing import Any
 
 import _cffi_backend
 
-from alphabet._alphabet_wrapper import ffi, lib
+_cffi_wrapper = (
+    import_module("._cffi_wrapper", __package__)
+    if __package__
+    else import_module("_cffi_wrapper")
+)
+
+# from alphabet._alphabet_wrapper import ffi, lib
 from introspect import cffi_model, database
 
 
 def main() -> int:
+    ffi, lib = _cffi_wrapper.ffi, _cffi_wrapper.lib
+
     db: database.CFFIModelDB = database.CFFIModelDB(database=".")
     cffi_model.cffi_init(ffi, lib)
     ctypes: cffi_model.CFFICTypes = cffi_model.CFFICTypes()
