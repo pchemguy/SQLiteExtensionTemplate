@@ -11,9 +11,11 @@ from typing import Any
 import pytest
 
 
-ALPHABET_SOURCE_ROOT = Path(__file__).parents[1] / "src"
-ALPHABET_MODULE_DIRECTORY = ALPHABET_SOURCE_ROOT / "alphabet"
-sys.path[:0] = [str(ALPHABET_SOURCE_ROOT), str(ALPHABET_MODULE_DIRECTORY)]
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SOURCE_ROOT = REPO_ROOT / "src"
+MODULE_ROOT = SOURCE_ROOT / "alphabet"
+
+sys.path[:0] = [str(SOURCE_ROOT), str(MODULE_ROOT)]
 
 
 @pytest.fixture(scope="session")
