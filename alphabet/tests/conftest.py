@@ -8,6 +8,8 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
+from tests.cffi_types import CffiValue
+
 import pytest
 
 
@@ -83,3 +85,32 @@ def assert_sql_error(
         assert str(error.value) == expected
 
     return execute
+
+
+########## CTD ##########
+
+@pytest.fixture
+def reset_globals(lib: CffiValue) -> Iterator[None]:
+    """Expose mutable-global isolation explicitly to tests that need it."""
+    lib.ctd_globals_reset()
+    yield
+    lib.ctd_globals_reset()
+
+
+@pytest.fixture
+def counter_handle(ffi: CffiValue, lib: CffiValue) -> Iterator[object]:
+    """Provide one owned opaque counter and release it after the test."""
+    handle = lib.ctd_counter_create(10)
+    assert handle != ffi.NULL
+    yield handle
+    lib.ctd_free(handle)
+
+
+@pytest.fixture
+def allocated_sequence(ffi: CffiValue, lib: CffiValue) -> Iterator[tuple[object, int]]:
+    """Provide a CTD-owned array to tests that do not exercise deallocation."""
+    count = 4
+    values = lib.ctd_alloc_sequence_i32(-2, count)
+    assert values != ffi.NULL
+    yield values, count
+    lib.ctd_free(values)
