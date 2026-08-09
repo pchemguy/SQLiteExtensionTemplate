@@ -748,8 +748,6 @@ set OPT_XTRA=%OPT_XTRA% ^
     -DSQLITE_USE_URI=1 ^
     -DSQLITE_SOUNDEX
 
-if "%USE_TEST%"=="1" (set OPT_XTRA=%OPT_XTRA% -DPYTEST_C_API)                          
-
 echo ~~~~~ %SECTION% ~~~~~
 echo:
 exit /b 0
@@ -1185,12 +1183,15 @@ exit /b %ERRORLEVEL%
 set "SECTION=EXTRA_SRC_THIRD"
 
 set OPT_XTRA=%OPT_XTRA%      ^
-    -DCTD_TEST               ^
-    -DCTD_BUILD_LIB          ^
-    -DALPHABET_TEST          ^
-    -DALPHABET_BUILD_LIB     ^
     -DSQLITE_ENABLE_ALPHABET
 
+if "%USE_TEST%"=="1" (
+    set OPT_XTRA=%OPT_XTRA%      ^
+        -DCTD_TEST               ^
+        -DCTD_BUILD_LIB          ^
+        -DALPHABET_TEST          ^
+        -DALPHABET_BUILD_LIB
+)
 
 set SOURCES=^
     "%PROJDIR%\src\ctd.c" ^
