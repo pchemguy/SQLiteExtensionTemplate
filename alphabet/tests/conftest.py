@@ -21,7 +21,7 @@ sys.path[:0] = [str(SOURCE_ROOT), str(MODULE_ROOT)]
 @pytest.fixture(scope="session")
 def wrapper_module() -> ModuleType:
     """Import the freshly built CFFI wrapper for the alphabet helpers."""
-    return import_module("_alphabet_wrapper")
+    return import_module("_cffi_wrapper")
 
 
 @pytest.fixture
