@@ -416,8 +416,8 @@ if exist "%TARGETDIR%" (
     goto :MKDIR__DIR_EXIT
 )
 
-mkdir "%TARGETDIR%" ||      set "MKDIR_FAILED=1"
-if not exist "%TARGETDIR%" (set "MKDIR_FAILED=1")
+cmd /c mkdir "%TARGETDIR%" || set "MKDIR_FAILED=1"
+if not exist "%TARGETDIR%"   (set "MKDIR_FAILED=1")
 
 if defined MKDIR_FAILED (
     set "ERROR_STATUS=1"
@@ -624,6 +624,10 @@ set "TSRC=%BUILDDIR%\tsrc"
 call :MKDIR__DIR "%TSRC%" || exit /b !ERRORLEVEL!
 set "INCDIR=%OUT%\include"
 call :MKDIR__DIR "%INCDIR%" || exit /b !ERRORLEVEL!
+set "LIBDIR_IMPORT=%OUT%\lib\import"
+call :MKDIR__DIR "%LIBDIR_IMPORT%" || exit /b !ERRORLEVEL!
+set "LIBDIR_STATIC=%OUT%\lib\static"
+call :MKDIR__DIR "%LIBDIR_STATIC%" || exit /b !ERRORLEVEL!
 set "BINDIR=%OUT%\bin"
 call :MKDIR__DIR "%BINDIR%" || exit /b !ERRORLEVEL!
 
@@ -1270,14 +1274,15 @@ set "SECTION=COLLECT_BINARIES"
 
 echo ========== Collecting binaries ===========
 del /Q "%BINDIR%\*" 2>nul
-if exist "%BUILDDIR%\sqlite3.dll" copy /Y "%BUILDDIR%\sqlite3.dll" "%BINDIR%"
-if exist "%BUILDDIR%\sqlite3.exe" copy /Y "%BUILDDIR%\sqlite3.exe" "%BINDIR%"
-if exist "%BUILDDIR%\sqlite3.def" copy /Y "%BUILDDIR%\sqlite3.def" "%BINDIR%"
-if exist "%BUILDDIR%\sqlite3.lib" copy /Y "%BUILDDIR%\sqlite3.lib" "%BINDIR%"
+if exist "%BUILDDIR%\sqlite3.dll"    copy /Y "%BUILDDIR%\sqlite3.dll"    "%BINDIR%"
+if exist "%BUILDDIR%\sqlite3.exe"    copy /Y "%BUILDDIR%\sqlite3.exe"    "%BINDIR%"
+if exist "%BUILDDIR%\sqlite3.def"    copy /Y "%BUILDDIR%\sqlite3.def"    "%LIBDIR_IMPORT%"
+if exist "%BUILDDIR%\sqlite3.lib"    copy /Y "%BUILDDIR%\sqlite3.lib"    "%LIBDIR_IMPORT%"
+if exist "%BUILDDIR%\libsqlite3.lib" copy /Y "%BUILDDIR%\libsqlite3.lib" "%LIBDIR_STATIC%"
 copy /Y "%BUILDDIR%\sqlite3*.h" "%INCDIR%"
 copy /Y "%PROJDIR%\src\*.h" "%INCDIR%"
 if "%USE_ICU%"=="1" (copy /Y "%ICUBINDIR%\icu*.dll" "%BINDIR%")
-if "%USE_ZLIB%"=="1" (copy /Y "%ZLIBDIR%\zlib1.dll"  "%BINDIR%")
+if "%USE_ZLIB%"=="1" (if exist "%ZLIBDIR%\zlib1.dll" copy /Y "%ZLIBDIR%\zlib1.dll" "%BINDIR%")
 echo ---------- Copied  binaries -----------
 
 echo ~~~~~ %SECTION% ~~~~~
