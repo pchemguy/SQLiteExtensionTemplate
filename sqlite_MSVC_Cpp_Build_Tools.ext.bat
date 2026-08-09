@@ -357,25 +357,33 @@ call :MAKE_DEBUG %*        || exit /b !ERRORLEVEL!
 
 call :SQLITE_DOWNLOAD      || exit /b !ERRORLEVEL!
 call :SQLITE_EXTRACT       || exit /b !ERRORLEVEL!
+
 if "%USE_ZLIB%"=="1" (     
     call :ZLIB_DOWNLOAD    || exit /b !ERRORLEVEL!
     call :ZLIB_EXTRACT     || exit /b !ERRORLEVEL!
     call :ZLIB_BUILD       || exit /b !ERRORLEVEL!
 )                          
+
 if "%USE_ICU%"=="1" (      
     call :ICU_DOWNLOAD     || exit /b !ERRORLEVEL!
     call :ICU_EXTRACT      || exit /b !ERRORLEVEL!
     call :ICU_BUILD        || exit /b !ERRORLEVEL!
 )                          
+
 call :SQLITE_BUILD_INIT    || exit /b !ERRORLEVEL!
 
-call :FP16_DOWNLOAD        || exit /b !ERRORLEVEL!
-call :FP16_EXTRACT         || exit /b !ERRORLEVEL!
+if "%USE_FP16%"=="1" (
+    call :FP16_DOWNLOAD    || exit /b !ERRORLEVEL!
+    call :FP16_EXTRACT     || exit /b !ERRORLEVEL!
+)
 
 if "%SQLITE_EXTRA%"=="1" (
     call :EXTRA_SRC_STOCK  || exit /b !ERRORLEVEL!
 )
-call :EXTRA_SRC_THIRD      || exit /b !ERRORLEVEL!
+
+if "%USE_EXTRAS%"=="1" (
+    call :EXTRA_SRC_THIRD  || exit /b !ERRORLEVEL!
+)
 
 call :SQLITE_BUILD %*      || exit /b !ERRORLEVEL!
 call :COLLECT_BINARIES
@@ -392,9 +400,9 @@ exit /b 0
 
 :: Creates directory or fails with feedback.
 ::
-:: %~1 - Full targer directory path.
+:: %~1 - Full target directory path.
 ::
-:: Attempts creating targer directory if not exist.
+:: Attempts creating target directory if not exist.
 :: Fails if creation fails or directory does not exist after creation.
 
 setlocal
@@ -572,6 +580,8 @@ if not defined USE_ICU      (set "USE_ICU=1")
 if not defined USE_ZLIB     (set "USE_ZLIB=1")
 if not defined SQLITE_EXTRA (set "SQLITE_EXTRA=1")
 if not defined USE_TEST     (set "USE_TEST=1")
+if not defined USE_FP16     (set "USE_FP16=1")
+if not defined USE_EXTRAS   (set "USE_EXTRAS=1")
 
 set "MSG=USE_ICU:      %USE_ICU% - ICU is"
 if "%USE_ICU%"=="0" (
@@ -598,6 +608,22 @@ if "%SQLITE_EXTRA%"=="0" (
 echo %MSG%
 
 set "MSG=USE_TEST:     %USE_TEST% - Test build is"
+if "%USE_TEST%"=="0" (
+    set "MSG=%MSG% OFF."
+) else (
+    set "MSG=%MSG% ON."
+)
+echo %MSG%
+
+set "MSG=USE_FP16:     %USE_FP16% - FP16 is"
+if "%USE_TEST%"=="0" (
+    set "MSG=%MSG% OFF."
+) else (
+    set "MSG=%MSG% ON."
+)
+echo %MSG%
+
+set "MSG=USE_EXTRAS:    %USE_EXTRAS% - Extras are"
 if "%USE_TEST%"=="0" (
     set "MSG=%MSG% OFF."
 ) else (
@@ -653,7 +679,7 @@ exit /b 0
 
 set "SECTION=ICU_OPTIONS"
 
-if "/%VSCMD_ARG_TGT_ARCH%/" == "/x64/" (set "ARCH=64") else (set "ARCH=")
+if /I "%VSCMD_ARG_TGT_ARCH%"=="x64" (set "ARCH=64") else (set "ARCH=")
 set "ICUDIR=%THIRDDIR%\icu"
 set "ICUINCDIR=%ICUDIR%\include"
 set "ICULIBDIR=%ICUDIR%\lib%ARCH%"
@@ -959,7 +985,7 @@ set "DISTRO=%CACHEDIR%\icu4c-X-sources.zip"
 set "URL="
 
 set "ICU_REPO_META=%CACHEDIR%\icu_repo_meta.json"
-if not exist "%ICU_RELEASE_META%" (
+if not exist "%ICU_REPO_META%" (
     curl.exe -s --output "%ICU_REPO_META%" ^
              https://api.github.com/repos/unicode-org/icu/releases/latest
 )
@@ -1260,7 +1286,7 @@ nmake /nologo "EXTRA_SRC=%EXTRA_SRC%" "TOP=%SQLITEDIR%" /f "%SQLITE_MAKEFILE%" %
 
 :: ----- Replace sqlite3.lib -----
 
-lib /def:"%BUILDDIR%\sqlite3.def" /out:"%BUILDDIR%\sqlite3.lib" /machine:x64
+lib /def:"%BUILDDIR%\sqlite3.def" /out:"%BUILDDIR%\sqlite3.lib" /machine:%VSCMD_ARG_TGT_ARCH%
 
 echo ~~~~~ %SECTION% ~~~~~
 echo:
