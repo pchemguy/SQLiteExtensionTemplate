@@ -100,7 +100,7 @@ The implementation includes lower-level routines such as UTF-8 byte counting, co
 
 ## Dual Built-In / Loadable Extension Registration
 
-The `alphabet` extension uses one internal registration routine and two thin entry points so that the same implementation can be built either:
+The `alphabet` extension uses one internal registration routine and two thin entry points (defined at the very end of the main source module "alphabet.c") so that the same implementation can be built either:
 
 * directly into SQLite and registered as a built-in/auto-extension; or
 * as a conventional loadable SQLite extension.
@@ -328,7 +328,7 @@ It also keeps the module easy to reason about:
 * `sqlite3AlphabetInit()` defines **how an embedded SQLite build enters the extension**;
 * `sqlite3_alphabet_init()` defines **how SQLite's loadable-extension mechanism enters the extension**.
 
-This is the core boilerplate used by the template for supporting both integrated and standalone extension builds from the same C source.
+This is the core SQLite interface pattern used by the template for supporting both integrated and standalone extension builds from the same C source.
 
 ---
 
