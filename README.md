@@ -98,6 +98,240 @@ The implementation includes lower-level routines such as UTF-8 byte counting, co
 
 ---
 
+## Dual Built-In / Loadable Extension Registration
+
+The `alphabet` extension uses one internal registration routine and two thin entry points so that the same implementation can be built either:
+
+* directly into SQLite and registered as a built-in/auto-extension; or
+* as a conventional loadable SQLite extension.
+
+The key design is that **all SQL-visible feature registration lives in one internal function**:
+
+```c
+/*
+** Register the extension's SQL functions.
+**
+** Three fixed arities are registered so SQLite itself rejects calls with
+** zero arguments or more than three arguments.
+*/
+static int alphabetInit(sqlite3 *db) {
+    static const int flags = SQLITE_UTF8 | SQLITE_DETERMINISTIC | SQLITE_INNOCUOUS;
+    int rc = SQLITE_OK;
+
+    if (rc == SQLITE_OK) {
+        rc = sqlite3_create_function(
+            db, "alpha_string", 1, flags, 0,
+            alphabetStringFunc, 0, 0
+        );
+    }
+
+    if (rc == SQLITE_OK) {
+        rc = sqlite3_create_function(
+            db, "alpha_string", 2, flags, 0,
+            alphabetStringFunc, 0, 0
+        );
+    }
+
+    if (rc == SQLITE_OK) {
+        rc = sqlite3_create_function(
+            db, "alpha_string", 3, flags, 0,
+            alphabetStringFunc, 0, 0
+        );
+    }
+
+    return rc;
+}
+```
+
+`alphabetInit()` is the extension's actual SQL registration routine. It does not care how the extension entered SQLite. Its only responsibility is to register the SQL functionality exposed by the module.
+
+For `alphabet`, that means registering:
+
+```sql
+alpha_string(language)
+alpha_string(language, start)
+alpha_string(language, start, length)
+```
+
+as three fixed arities of the same SQL function.
+
+Using three separate registrations rather than a variadic arity such as `-1` lets SQLite itself reject calls with unsupported argument counts before `alphabetStringFunc()` is invoked.
+
+The function also centralizes the SQLite function flags:
+
+```c
+SQLITE_UTF8 | SQLITE_DETERMINISTIC | SQLITE_INNOCUOUS
+```
+
+These declare that `alpha_string`:
+
+* uses UTF-8 text encoding;
+* is deterministic for a given argument set;
+* is considered innocuous and does not perform privileged or externally visible operations.
+
+Registration is performed sequentially and stops at the first error. The first non-`SQLITE_OK` return code from `sqlite3_create_function()` is propagated to the caller.
+
+### Built-In SQLite Entry Point
+
+When the source is compiled as part of SQLite itself, `SQLITE_CORE` is defined:
+
+```c
+#ifdef SQLITE_CORE
+
+int sqlite3AlphabetInit(sqlite3 *db) {
+    return alphabetInit(db);
+}
+```
+
+The core-facing entry point is intentionally minimal.
+
+```c
+sqlite3AlphabetInit(sqlite3 *db)
+```
+
+receives an already initialized SQLite database connection and delegates directly to `alphabetInit()`.
+
+This form is suitable for registration through SQLite's built-in auto-extension machinery. In this project, the build pipeline integrates the source through `EXTRA_SRC` and arranges for the initializer to participate in the generated built-in extension registry.
+
+Conceptually:
+
+```text
+SQLite opens database connection
+        |
+        v
+built-in auto-extension registry
+        |
+        v
+sqlite3AlphabetInit(db)
+        |
+        v
+alphabetInit(db)
+        |
+        v
+sqlite3_create_function(...)
+```
+
+No loadable-extension API table is required in this mode because the extension is compiled inside the SQLite core and can call the SQLite API directly.
+
+### Loadable Extension Entry Point
+
+When `SQLITE_CORE` is not defined, the same source instead exposes the conventional SQLite loadable-extension initializer:
+
+```c
+#else
+
+# if defined(_WIN32)
+__declspec(dllexport)
+# endif
+int sqlite3_alphabet_init(
+    sqlite3 *db,
+    char **pzErrMsg,
+    const sqlite3_api_routines *pApi
+) {
+    SQLITE_EXTENSION_INIT2(pApi);
+    (void)pzErrMsg;  /* Unused parameter */
+    return alphabetInit(db);
+}
+
+#endif /* SQLITE_CORE */
+```
+
+The exported entry point follows SQLite's loadable-extension ABI:
+
+```c
+int sqlite3_alphabet_init(
+    sqlite3 *db,
+    char **pzErrMsg,
+    const sqlite3_api_routines *pApi
+);
+```
+
+Here:
+
+* `db` is the target SQLite connection;
+* `pzErrMsg` is available for an optional initialization error message;
+* `pApi` points to SQLite's runtime API dispatch table.
+
+The call:
+
+```c
+SQLITE_EXTENSION_INIT2(pApi);
+```
+
+initializes the extension-side SQLite API indirection required by `sqlite3ext.h`.
+
+After that setup, the loadable-extension entry point delegates to the same:
+
+```c
+alphabetInit(db)
+```
+
+routine used by the built-in form.
+
+`pzErrMsg` is not needed by this extension, so it is explicitly marked unused:
+
+```c
+(void)pzErrMsg;
+```
+
+On Windows, the initializer is exported with:
+
+```c
+__declspec(dllexport)
+```
+
+so SQLite can locate it in the loadable extension DLL.
+
+The corresponding flow is:
+
+```text
+sqlite3_load_extension()
+        |
+        v
+sqlite3_alphabet_init(db, pzErrMsg, pApi)
+        |
+        +--> SQLITE_EXTENSION_INIT2(pApi)
+        |
+        v
+alphabetInit(db)
+        |
+        v
+sqlite3_create_function(...)
+```
+
+### One Registration Implementation, Two Integration Modes
+
+The important part of the pattern is therefore:
+
+```text
+                         alphabetInit(db)
+                               |
+                 +-------------+-------------+
+                 |                           |
+                 v                           v
+       sqlite3AlphabetInit()        sqlite3_alphabet_init()
+          SQLITE_CORE                   loadable build
+                 |                           |
+                 v                           v
+        built into SQLite            loaded at runtime
+```
+
+The integration-specific entry points contain only the code required by their respective SQLite build models.
+
+The SQL feature registration itself is defined once.
+
+This separation avoids duplicating `sqlite3_create_function()` calls or allowing the built-in and loadable variants to drift apart.
+
+It also keeps the module easy to reason about:
+
+* `alphabetInit()` defines **what the extension exposes to SQL**;
+* `sqlite3AlphabetInit()` defines **how an embedded SQLite build enters the extension**;
+* `sqlite3_alphabet_init()` defines **how SQLite's loadable-extension mechanism enters the extension**.
+
+This is the core boilerplate used by the template for supporting both integrated and standalone extension builds from the same C source.
+
+---
+
 ## Design Principle: Keep the C Logic Testable
 
 A SQLite extension normally contains at least two conceptual layers:
