@@ -214,29 +214,43 @@ static void alphabetStringFunc(
 ** Three fixed arities are registered so SQLite itself rejects calls with
 ** zero arguments or more than three arguments.
 */
-int sqlite3AlphabetInit(sqlite3 *db) {
+int alphabetInit(sqlite3 *db) {
     static const int flags = SQLITE_UTF8 | SQLITE_DETERMINISTIC | SQLITE_INNOCUOUS;
-    int rc;
+    int rc = SQLITE_OK;
 
-    rc = sqlite3_create_function(
-        db, "alpha_string", 1, flags, 0,
-        alphabetStringFunc, 0, 0
-    );
-    if (rc != SQLITE_OK) {return rc;}
+    if (rc == SQLITE_OK) {
+        rc = sqlite3_create_function(
+            db, "alpha_string", 1, flags, 0,
+            alphabetStringFunc, 0, 0
+        );
+    }
 
-    rc = sqlite3_create_function(
-        db, "alpha_string", 2, flags, 0,
-        alphabetStringFunc, 0, 0
-    );
-    if (rc != SQLITE_OK) {return rc;}
+    if (rc == SQLITE_OK) {
+        rc = sqlite3_create_function(
+            db, "alpha_string", 2, flags, 0,
+            alphabetStringFunc, 0, 0
+        );
+    }
 
-    return sqlite3_create_function(
-        db, "alpha_string", 3, flags, 0,
-        alphabetStringFunc, 0, 0
-    );
+    if (rc == SQLITE_OK) {
+        rc = sqlite3_create_function(
+            db, "alpha_string", 3, flags, 0,
+            alphabetStringFunc, 0, 0
+        );
+    }
+
+    return rc;
 }
 
-#ifndef SQLITE_CORE
+
+#ifdef SQLITE_CORE
+
+int sqlite3AlphabetInit(sqlite3 *db) {
+    return alphabetInit(db);
+}
+
+#else
+
 # if defined(_WIN32)
 __declspec(dllexport)
 # endif
@@ -245,8 +259,9 @@ int sqlite3_alphabet_init(
     char **pzErrMsg,
     const sqlite3_api_routines *pApi
 ) {
-    (void)pzErrMsg;
     SQLITE_EXTENSION_INIT2(pApi);
-    return sqlite3AlphabetInit(db);
+    (void)pzErrMsg;  /* Unused parameter */
+    return alphabetInit(db);
 }
-#endif
+
+#endif /* SQLITE_CORE */
