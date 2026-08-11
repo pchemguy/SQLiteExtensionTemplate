@@ -204,9 +204,6 @@ static void alphabetStringFunc(
     );
 }
 
-#ifndef SQLITE_CORE
-# define sqlite3AlphabetInit sqlite3AlphabetInit_Standalone
-#endif
 
 /*
 ** Register the extension's SQL functions.
@@ -214,7 +211,7 @@ static void alphabetStringFunc(
 ** Three fixed arities are registered so SQLite itself rejects calls with
 ** zero arguments or more than three arguments.
 */
-int alphabetInit(sqlite3 *db) {
+static int alphabetInit(sqlite3 *db) {
     static const int flags = SQLITE_UTF8 | SQLITE_DETERMINISTIC | SQLITE_INNOCUOUS;
     int rc = SQLITE_OK;
 
