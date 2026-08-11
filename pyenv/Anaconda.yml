@@ -9,3 +9,11 @@ dependencies:
   - pytest
   - pytest-benchmark
   - pytest-cov
+  - cffi
+#  - clang
+##  - clangdev
+#  - libclang
+#  - python-clang
+#  - clang-tools
+##  - clang_win-64
+#  - clang-cl_win-64
