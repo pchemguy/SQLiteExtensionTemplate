@@ -556,7 +556,7 @@ The complete Windows/MSVC build design, including:
 
 is documented separately in:
 
-**[Field Notes — SQLite MSVC Build / Amalgamation Integration](https://github.com/pchemguy/Field-Notes/tree/main/11-sqlite-msvc-build)**
+**[Field Notes — SQLite MSVC Build / Amalgamation Integration](https://github.com/pchemguy/Field-Notes/tree/main/notes/11-sqlite-msvc-build)**
 
 That document should be treated as the detailed build-system reference. This README concentrates on how the build system supports the extension-development and testing workflow.
 
@@ -1021,7 +1021,7 @@ build_sqlite_msvc.bat
 
 The precise build machinery is intentionally not duplicated here. See:
 
-**[SQLite MSVC build Field Note](https://github.com/pchemguy/Field-Notes/tree/main/11-sqlite-msvc-build)**
+**[SQLite MSVC build Field Note](https://github.com/pchemguy/Field-Notes/tree/main/notes/11-sqlite-msvc-build)**
 
 ---
 
@@ -1113,7 +1113,7 @@ This repository sits at the intersection of two related pieces of work.
 
 ### SQLite build/integration reference
 
-[**Field Notes — SQLite MSVC Build**](https://github.com/pchemguy/Field-Notes/tree/main/11-sqlite-msvc-build)
+[**Field Notes — SQLite MSVC Build**](https://github.com/pchemguy/Field-Notes/tree/main/notes/11-sqlite-msvc-build)
 
 Covers the build side in depth:
 
