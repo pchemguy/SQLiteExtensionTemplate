@@ -16,6 +16,12 @@ The project combines three concerns that are often treated separately:
 
 The result is intended as a reusable starting point for small or medium SQLite extensions whose implementation contains C logic worth testing independently of the SQL interface.
 
+> [!IMPORTANT]
+> 
+> **AI-Assisted Development Disclosure**
+> 
+> This project has been developed with extensive generative-AI assistance. Assistance covered project exploration, design discussion, specification development, implementation, testing, technical review, and documentation. See [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for further details. Responsibility for the published software remains with the maintainer.
+
 ---
 
 ## Project Goals
