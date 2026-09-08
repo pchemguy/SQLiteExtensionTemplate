@@ -8,7 +8,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from tests.cffi_types import CffiValue
+from cffi_types import CffiValue
 
 import pytest
 

@@ -1,6 +1,6 @@
 import pytest
 
-from .support import (
+from support import (
     CYRILLIC,
     LANGUAGE_ERROR,
     LANGUAGE_TYPE_ERROR,

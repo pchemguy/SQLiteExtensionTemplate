@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.cffi_types import CffiValue
+from cffi_types import CffiValue
 
 
 def test_callback_with_python_user_data(ffi: CffiValue, lib: CffiValue) -> None:

@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from .support import LATIN
+from support import LATIN
 
 
 def test_one_argument_form(scalar) -> None:

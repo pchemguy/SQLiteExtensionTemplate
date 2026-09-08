@@ -1,6 +1,6 @@
 import pytest
 
-from .support import (
+from support import (
     CYRILLIC,
     LATIN,
     LENGTH_RANGE_ERROR,

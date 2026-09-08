@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from .support import (
+from support import (
     CYRILLIC,
     LANGUAGE_ERROR,
     LATIN,
