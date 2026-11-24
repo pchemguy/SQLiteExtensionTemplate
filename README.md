@@ -989,7 +989,13 @@ See the dedicated build Field Note for the complete directory and build-stage de
 
 The primary native build is Windows/MSVC.
 
-Run the build from an initialized Visual C++ developer command prompt matching the required architecture.
+The repository includes a Windows environment harness under `pyenv/`. In particular, `pyenv/msbuild.bat` is the MSVC activation and verification helper used by `pyenv/conda_far.bat`. It does **not** install Visual Studio or Build Tools.
+
+`msbuild.bat` targets an x64 MSVC environment. If a valid x64 developer environment is already active, it verifies and reuses it. Otherwise, it searches for `vcvars64.bat` using explicit `VCVARS`, `BUILDTOOLS`, and `MSBUILDTOOLS` settings, project/custom locations, `PATH`, `vswhere.exe`, and standard Visual Studio installation roots, then activates the discovered toolchain.
+
+The helper also verifies that `cl.exe` is available and that the resolved `link.exe` is the Microsoft Incremental Linker from the same toolset directory. This catches the common MSYS/Git `link.exe` name collision before a native build starts. `conda_far.bat` additionally renames the Conda `m2` `link.exe` shim when present before invoking `msbuild.bat`, then sets `DISTUTILS_USE_SDK=1` so Python build tooling reuses the activated MSVC environment.
+
+For the standalone SQLite build script itself, run from an initialized Visual C++ developer command prompt matching the required architecture.
 
 Typical invocation:
 
@@ -1028,7 +1034,13 @@ set USE_EXTRAS=1
 build_sqlite_msvc.bat
 ```
 
-The precise build machinery is intentionally not duplicated here. See:
+The environment harness and the SQLite builder have different responsibilities:
+
+- `pyenv/msbuild.bat` activates and validates the x64 MSVC toolchain used by the Python/Conda development environment;
+- `pyenv/conda_far.bat` orchestrates the clean CMD/Conda environment and calls `msbuild.bat`;
+- the SQLite build script performs the actual SQLite/dependency/amalgamation build.
+
+The precise SQLite build machinery is intentionally not duplicated here. See:
 
 **[SQLite MSVC build Field Note](https://github.com/pchemguy/Field-Notes/tree/main/notes/11-sqlite-msvc-build)**
 
@@ -1088,6 +1100,10 @@ The important source-level components are conceptually:
 ├─ README.md
 ├─ pyproject.toml
 ├─ build_sqlite_msvc.bat
+│
+├─ pyenv/
+│  ├─ conda_far.bat
+│  └─ msbuild.bat
 │
 ├─ src/
 │  ├─ alphabet.c
