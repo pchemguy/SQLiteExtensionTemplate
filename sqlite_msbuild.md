@@ -6,7 +6,7 @@ url: https://chatgpt.com/c/6a786079-f408-83eb-87b1-e0d35b2804a5
 
 ## Overview
 
-`sqlite_MSVC_Cpp_Build_Tools.ext.bat` downloads, prepares, builds, and packages a customized SQLite distribution on Windows using the Microsoft Visual C++ toolchain and SQLite's `Makefile.msc` build system.
+`sqlite_msbuild.bat` downloads, prepares, builds, and packages a customized SQLite distribution on Windows using the Microsoft Visual C++ toolchain and SQLite's `Makefile.msc` build system.
 
 The build system supports:
 
@@ -16,8 +16,7 @@ The build system supports:
 * a generated Windows import library;
 * generated/public SQLite headers;
 * optional ZLIB integration;
-* optional ICU support, using a complete Conda ICU distribution by default;
-* optional FP16 headers;
+* optional ICU support, using a complete Conda ICU distribution;
 * optional stock SQLite `ext/misc` extensions compiled directly into SQLite;
 * optional project-specific integrated extensions;
 * dedicated test builds exposing selected C APIs for direct testing;
@@ -145,8 +144,7 @@ Used to download:
 
 * SQLite;
 * ZLIB;
-* ICU release metadata and ICU source when the ICU-from-source branch is selected;
-* FP16 source.
+* ICU release metadata and ICU source when the ICU-from-source branch is selected.
 
 #### Windows `tar.exe`
 
@@ -171,46 +169,12 @@ The required MSVC C/C++ workload and Windows SDK must be installed.
 
 ---
 
-## Tcl Discovery
-
-Tcl is a mandatory build-time dependency.
-
-The script searches for Tcl in this order:
-
-1. `tclsh.exe` available through `PATH`;
-2. `%TCL_HOME%\bin\tclsh.exe`;
-3. predefined fallback installations.
-
-Current fallback locations include:
-
-```text
-%SystemDrive%\dev\TCL
-%ProgramFiles%\TCL
-C:\dev\TCL
-G:\dev\TCL
-H:\dev\TCL
-```
-
-When Tcl is found outside `PATH`, its `bin` directory is prepended to `PATH`.
-
-The script then defines:
-
-```text
-TCL_HOME
-TCLSH_CMD
-TCLDIR
-```
-
-and prints the detected Tcl version.
-
----
-
 ## Invocation
 
 From an initialized MSVC developer command prompt:
 
 ```cmd
-sqlite_MSVC_Cpp_Build_Tools.ext.bat [NMAKE_TARGET_OR_OPTION ...]
+sqlite_msbuild.bat [NMAKE_TARGET_OR_OPTION ...]
 ```
 
 Arguments that are not recognized as special diagnostic targets are forwarded to the final SQLite `nmake` invocation.
@@ -218,7 +182,7 @@ Arguments that are not recognized as special diagnostic targets are forwarded to
 ### Default build
 
 ```cmd
-sqlite_MSVC_Cpp_Build_Tools.ext.bat
+sqlite_msbuild.bat
 ```
 
 Runs the configured default SQLite build.
@@ -226,7 +190,7 @@ Runs the configured default SQLite build.
 ### Specific SQLite target
 
 ```cmd
-sqlite_MSVC_Cpp_Build_Tools.ext.bat sqlite3.dll
+sqlite_msbuild.bat sqlite3.dll
 ```
 
 Requests the named `Makefile.msc` target.
@@ -234,7 +198,7 @@ Requests the named `Makefile.msc` target.
 ### Clean target
 
 ```cmd
-sqlite_MSVC_Cpp_Build_Tools.ext.bat clean
+sqlite_msbuild.bat clean
 ```
 
 Forwards `clean` to SQLite's `Makefile.msc`.
@@ -254,7 +218,7 @@ Example:
 ```cmd
 set USE_ICU=0
 set SQLITE_EXTRA=0
-sqlite_MSVC_Cpp_Build_Tools.ext.bat
+sqlite_msbuild.bat
 ```
 
 ---
@@ -390,30 +354,6 @@ set USE_ZLIB=0
 
 ---
 
-### `USE_FP16`
-
-Controls acquisition and staging of FP16 headers.
-
-Default:
-
-```text
-USE_FP16=1
-```
-
-When enabled:
-
-1. the FP16 `master` branch archive is downloaded;
-2. the archive is extracted into SQLite's compatibility directory;
-3. the FP16 include tree is copied into the selected SQLite `tsrc` directory.
-
-Disable FP16 with:
-
-```cmd
-set USE_FP16=0
-```
-
----
-
 ### `SQLITE_EXTRA`
 
 Controls integration of selected **stock SQLite `ext/misc` extensions**.
@@ -475,7 +415,6 @@ This switch is independent of `SQLITE_EXTRA`.
 | `USE_ICU`       |     `1` | Enable ICU integration                               |
 | `USE_ICU_CONDA` |     `1` | Use Conda ICU; `0` selects the retained source build |
 | `USE_ZLIB`      |     `1` | ZLIB download, build, integration, runtime DLL       |
-| `USE_FP16`      |     `1` | FP16 download, extraction, header staging            |
 | `SQLITE_EXTRA`  |     `1` | Stock SQLite `ext/misc` integrations                 |
 | `USE_EXTRAS`    |     `1` | Project/third-party integrated sources               |
 
@@ -535,7 +474,7 @@ The expected project source layout is approximately:
 │  ├─ patch_sqlite_misc_autoext.tcl
 │  └─ bundle_extra_src.tcl
 │
-├─ sqlite_MSVC_Cpp_Build_Tools.ext.bat
+├─ sqlite_msbuild.bat
 │
 └─ out\
 ```
@@ -547,10 +486,7 @@ out\
 │
 ├─ cache\
 │  ├─ sqlite.zip
-│  ├─ zlib.tar.gz
-│  ├─ icu_repo_meta.json
-│  ├─ icu4c-X-sources.zip
-│  └─ fp16_master.zip
+│  └─ zlib.tar.gz
 │
 ├─ sqlite\
 │  ├─ Makefile.msc
@@ -559,16 +495,12 @@ out\
 │  ├─ tool\
 │  └─ compat\
 │     ├─ zlib\
-│     ├─ icu\
-│     │  ├─ include\unicode\
-│     │  ├─ lib\ and bin\       (x86)
-│     │  └─ lib64\ and bin64\   (x64)
-│     └─ FP16-master\
+│     └─ icu\
+│        ├─ include\unicode\
+│        ├─ lib\ and bin\       (x86)
+│        └─ lib64\ and bin64\   (x64)
 │
 ├─ build\
-│  └─ ...
-│
-├─ build_test\
 │  └─ ...
 │
 ├─ include\
@@ -717,45 +649,7 @@ The URL follows the current ZLIB release.
 
 ### ICU
 
-This download is used only by the retained ICU-from-source branch. The default Conda ICU branch uses the package already installed in the active environment and does not download ICU source.
-
-Release metadata:
-
-```text
-https://api.github.com/repos/unicode-org/icu/releases/latest
-```
-
-Cached metadata:
-
-```text
-out\cache\icu_repo_meta.json
-```
-
-The script searches the release metadata for an ICU4C source ZIP URL and downloads the selected archive as:
-
-```text
-out\cache\icu4c-X-sources.zip
-```
-
-The local archive name is deliberately stable rather than version-specific.
-
----
-
-### FP16
-
-Source:
-
-```text
-https://github.com/Maratyszcza/FP16/archive/refs/heads/master.zip
-```
-
-Cached as:
-
-```text
-out\cache\fp16_master.zip
-```
-
-The source follows FP16's `master` branch.
+The Conda ICU uses the package already installed in the active environment and does not download ICU source.
 
 ---
 
@@ -984,42 +878,6 @@ This distinction is particularly important for SQLite test builds.
 SQLite's own test infrastructure may already include some standard `ext/misc` modules. Adding the same source again through the custom `EXTRA_SRC` pipeline can cause duplicate symbols or other fatal build conflicts.
 
 Project-specific modules do not have the same constraint and can remain enabled independently.
-
----
-
-## FP16 Integration
-
-When:
-
-```text
-USE_FP16=1
-```
-
-the build performs:
-
-1. download of the FP16 `master` archive;
-2. extraction beneath SQLite's compatibility directory;
-3. copy of the FP16 include hierarchy into `tsrc`.
-
-Source tree:
-
-```text
-out\sqlite\compat\FP16-master
-```
-
-Headers are copied from:
-
-```text
-out\sqlite\compat\FP16-master\include
-```
-
-into:
-
-```text
-<BUILDDIR>\tsrc
-```
-
-FP16 is currently treated as a header/source dependency; no separate FP16 library build is performed.
 
 ---
 
@@ -1290,7 +1148,7 @@ The import-library architecture follows the target architecture selected by the 
 
 ## SQLite Target-Source Initialization
 
-Before FP16 or additional extension sources are staged, the build invokes:
+Before extension sources are staged, the build invokes:
 
 ```cmd
 nmake ... .target_source
@@ -1369,7 +1227,7 @@ nmake /nologo ^
     /f "%SQLITE_MAKEFILE%" %*
 ```
 
-Any ordinary arguments passed to `sqlite_MSVC_Cpp_Build_Tools.ext.bat` therefore reach this invocation.
+Any ordinary arguments passed to `sqlite_msbuild.bat` therefore reach this invocation.
 
 ---
 
@@ -1442,15 +1300,11 @@ The normal build sequence is:
 11. `ZLIB_EXTRACT`, if enabled
 12. `ZLIB_BUILD`, if enabled
 13. `ICU_CONDA`, when `USE_ICU_CONDA=1`: validate and stage ICU from the active Conda environment
-14. `ICU_DOWNLOAD` and `ICU_EXTRACT`, only for the retained source provider
-15. `ICU_BUILD`, only for the retained source provider
-16. `SQLITE_BUILD_INIT`
-17. `FP16_DOWNLOAD`, if enabled
-18. `FP16_EXTRACT`, if enabled
-19. `EXTRA_SRC_STOCK`, if `SQLITE_EXTRA=1`
-20. `EXTRA_SRC_THIRD`, if `USE_EXTRAS=1`
-21. `SQLITE_BUILD`
-22. `COLLECT_BINARIES`
+14. `SQLITE_BUILD_INIT`
+15. `EXTRA_SRC_STOCK`, if `SQLITE_EXTRA=1`
+16. `EXTRA_SRC_THIRD`, if `USE_EXTRAS=1`
+17. `SQLITE_BUILD`
+18. `COLLECT_BINARIES`
 
 ---
 
@@ -1467,7 +1321,7 @@ tcl-test
 For example:
 
 ```cmd
-sqlite_MSVC_Cpp_Build_Tools.ext.bat env
+sqlite_msbuild.bat env
 ```
 
 The selected target is invoked directly against SQLite's `Makefile.msc`.
@@ -1539,14 +1393,6 @@ out\sqlite\compat\icu\lib64\icudt.lib, for x64
 out\sqlite\compat\icu\lib\icudt.lib, otherwise
 out\sqlite\compat\icu\bin64\icuinfo.exe, for x64
 out\sqlite\compat\icu\bin\icuinfo.exe, otherwise
-
-# Source-provider download/extraction state only:
-out\cache\icu_repo_meta.json
-out\cache\icu4c-X-sources.zip
-out\sqlite\compat\icu\source\allinone\allinone.sln
-
-out\cache\fp16_master.zip
-out\sqlite\compat\FP16-master
 ```
 
 If the expected marker exists, the associated operation may be skipped.
@@ -1564,7 +1410,7 @@ To force an operation to rerun, remove its relevant archive, extracted tree, bui
 Running:
 
 ```cmd
-sqlite_MSVC_Cpp_Build_Tools.ext.bat clean
+sqlite_msbuild.bat clean
 ```
 
 only forwards `clean` to SQLite's `Makefile.msc`.
@@ -1772,8 +1618,6 @@ Several dependencies are fetched from moving upstream references:
 | SQLite | current source-tree snapshot |
 | ZLIB | current release |
 | ICU, Conda provider | version copied from the active Conda environment when the staging markers are absent |
-| ICU, source provider | latest GitHub release |
-| FP16 | `master` branch |
 
 Cached downloads make subsequent builds from the same local cache more stable, but deleting the cache may result in different sources being downloaded later.
 
@@ -1782,8 +1626,7 @@ For reproducible builds:
 1. pin SQLite to a specific version/check-in;
 2. pin ZLIB to a fixed release archive;
 3. pin the Conda ICU package version, or pin the ICU source release when using the legacy provider;
-4. pin FP16 to a specific commit or release;
-5. record cryptographic hashes for downloaded artifacts.
+4. record cryptographic hashes for downloaded artifacts.
 
 ---
 
@@ -1833,7 +1676,6 @@ Any `NO_TCL` behavior therefore comes from SQLite's build defaults or a value in
 ```text
 USE_ICU
 USE_ZLIB
-USE_FP16
 SQLITE_EXTRA
 USE_EXTRAS
 ```
@@ -1863,7 +1705,7 @@ so the import library follows the active MSVC target architecture.
 ### Full default build
 
 ```cmd
-sqlite_MSVC_Cpp_Build_Tools.ext.bat
+sqlite_msbuild.bat
 ```
 
 Current defaults enable:
@@ -1873,7 +1715,6 @@ USE_TEST=1
 USE_ICU=1
 USE_ICU_CONDA=1
 USE_ZLIB=1
-USE_FP16=1
 SQLITE_EXTRA=1
 USE_EXTRAS=1
 ```
@@ -1889,11 +1730,10 @@ set USE_TEST=1
 set USE_ICU=1
 set USE_ICU_CONDA=1
 set USE_ZLIB=1
-set USE_FP16=1
 set SQLITE_EXTRA=0
 set USE_EXTRAS=1
 
-sqlite_MSVC_Cpp_Build_Tools.ext.bat
+sqlite_msbuild.bat
 ```
 
 This configuration assumes a complete, architecture-matched Conda ICU package. Set `USE_ICU=0` only when ICU functionality is irrelevant to the tests or the required Conda environment is unavailable.
@@ -1906,7 +1746,7 @@ This configuration assumes a complete, architecture-matched Conda ICU package. S
 set USE_TEST=0
 set USE_EXTRAS=1
 
-sqlite_MSVC_Cpp_Build_Tools.ext.bat
+sqlite_msbuild.bat
 ```
 
 ---
@@ -1918,11 +1758,10 @@ set USE_TEST=0
 set USE_ICU=0
 set USE_ICU_CONDA=0
 set USE_ZLIB=0
-set USE_FP16=0
 set SQLITE_EXTRA=0
 set USE_EXTRAS=0
 
-sqlite_MSVC_Cpp_Build_Tools.ext.bat
+sqlite_msbuild.bat
 ```
 
 The base `OPT_XTRA` SQLite compile-time configuration remains enabled.
@@ -1950,13 +1789,12 @@ The base `OPT_XTRA` SQLite compile-time configuration remains enabled.
 
 ## Summary
 
-`sqlite_MSVC_Cpp_Build_Tools.ext.bat` is the project's Windows/MSVC SQLite distribution builder.
+`sqlite_msbuild.bat` is the project's Windows/MSVC SQLite distribution builder.
 
 It combines SQLite's native `Makefile.msc` workflow with:
 
 * dependency acquisition;
-* optional ICU integration from Conda by default, with a retained source-build branch;
-* optional FP16 staging;
+* optional ICU integration from Conda;
 * stock SQLite extension bundling;
 * project extension integration;
 * test-only C API exposure;
