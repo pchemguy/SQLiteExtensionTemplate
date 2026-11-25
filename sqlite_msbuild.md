@@ -4,27 +4,26 @@ url: https://chatgpt.com/c/6a786079-f408-83eb-87b1-e0d35b2804a5
 
 # SQLite MSVC build system
 
+The primary source for the Windows build harness is [SQLite-ICU-MinGW’s Current/MSVC README](https://github.com/pchemguy/SQLite-ICU-MinGW/blob/master/Current/MSVC/README.md). This template adds the alphabet and CTD hooks and the `sqlite_msbuild_extra.bat` preset.
+
 `sqlite_msbuild.bat` builds SQLite on Windows with MSVC and SQLite's `Makefile.msc`. It can add ICU from Conda, build zlib, compile stock SQLite extensions into the amalgamation, and run project-specific build hooks. The default target produces a command-line shell, a DLL and libraries for static and dynamic linking. For the Python and CFFI workflow, see the [template README](README.md#test-with-python).
 
 ## Running a build
 
-Run these commands from the repository root in `cmd.exe` with the Visual C++ Build Tools and Windows SDK installed. For the default build, activate a Conda environment containing ICU for the target architecture first. The harness calls the adjacent [msbuild.bat](msbuild.bat) to find or verify MSVC.
+Run these commands from the repository root in `cmd.exe` with the Visual C++ Build Tools and Windows SDK installed. The harness calls the adjacent [msbuild.bat](msbuild.bat) to find or verify MSVC. For the template’s C API tests, run the single preset in a child CMD so its switches stay local to the build.
 
 ```cmd
-sqlite_msbuild.bat
+cmd /d /c sqlite_msbuild_extra.bat
 ```
 
-With the build switches initially unset, this includes ICU, zlib, the stock modules, alphabet and CTD. Select the full **test** preset to export the alphabet and CTD APIs used by CFFI. For a SQLite-only build, the bare preset also works from a plain CMD prompt with the Build Tools installed.
+The preset builds alphabet and CTD with their C test exports. Calling `sqlite_msbuild.bat` directly uses the settings in the environment. With all switches unset, the main script uses ICU from an active Conda environment matching the target architecture.
 
-| Entry point | `USE_ICU` | `USE_ZLIB` | `SQLITE_EXTRA` (stock) | `USE_EXTRAS` (project) | Test API |
-| --- | ---: | ---: | ---: | ---: | --- |
-| [sqlite_msbuild.bat](sqlite_msbuild.bat), defaults | 1 | 1 | 1 | 1 | Off unless `USE_TEST=1` |
-| [sqlite_msbuild_bare.bat](sqlite_msbuild_bare.bat) | 0 | 0 | 0 | 0 | No project modules |
-| [sqlite_msbuild_bare_icu.bat](sqlite_msbuild_bare_icu.bat) | 1 | 0 | 0 | 0 | No project modules |
-| [sqlite_msbuild_bare_icu_ext.bat](sqlite_msbuild_bare_icu_ext.bat) | 1 | 1 | 1 | 0 | No project modules |
-| [sqlite_msbuild_bare_icu_ext_extra.bat](sqlite_msbuild_bare_icu_ext_extra.bat) | 1 | 1 | 1 | 1 | Sets `USE_TEST=1` and `SQLITE_ENABLE_ALPHABET=1` |
+| Entry point | `USE_ICU` | `USE_ZLIB` | `SQLITE_EXTRA` (stock) | `USE_EXTRAS` (project) | `USE_TEST` | `SQLITE_ENABLE_ALPHABET` |
+| --- | ---: | ---: | ---: | ---: | --- | --- |
+| [sqlite_msbuild_extra.bat](sqlite_msbuild_extra.bat), template preset | 0 | 0 | 0 | 1 | 1 | 1 |
+| [sqlite_msbuild.bat](sqlite_msbuild.bat), defaults | 1 | 1 | 1 | 1 | Unset (off) | Unset (enabled by hook) |
 
-The four preset scripts set environment variables in the caller and invoke the harness without arguments. To isolate a preset's settings, run it in a child CMD, for example `cmd /d /c sqlite_msbuild_bare.bat`. To pass a target or NMAKE option, invoke the main script directly. Ordinary arguments reach the **final** NMAKE invocation. The harness still runs its preparation, export and packaging steps around that invocation.
+The preset invokes the harness without arguments. To pass a target or NMAKE option, invoke the main script directly. Ordinary arguments reach the **final** NMAKE invocation. The harness still runs its preparation, export and packaging steps around that invocation.
 
 ```cmd
 sqlite_msbuild.bat sqlite3.dll
@@ -43,7 +42,9 @@ Set feature switches to `0` or `1` before calling the main script. Start with a 
 | `SQLITE_ENABLE_ALPHABET` | The alphabet hook skips its work only for the exact value `0`. Otherwise it adds `-DSQLITE_ENABLE_ALPHABET`. CTD runs whenever project hooks are enabled. |
 | `USE_TEST` | The main script leaves this unset unless supplied by the caller. The enabled project hooks add their test export macros only for `1`. Every configuration uses `out\build`. |
 
-For example, this builds alphabet and CTD for the full Python test suite without requiring Conda ICU. Stock extensions stay enabled because that stage connects alphabet to SQLite's per-connection initialization.
+### Build for the full test suite
+
+To run both SQL and C API tests, enable the stock stage that registers `alpha_string()` and the project hooks that export the C APIs. This configuration also enables zlib through `SQLITE_EXTRA=1`. If switching from the preset, move the existing `out\build` aside first so NMAKE regenerates the amalgamation.
 
 ```cmd
 set "USE_ICU=0"
@@ -51,7 +52,7 @@ set "SQLITE_EXTRA=1"
 set "USE_EXTRAS=1"
 set "SQLITE_ENABLE_ALPHABET=1"
 set "USE_TEST=1"
-sqlite_msbuild.bat
+cmd /d /c sqlite_msbuild.bat
 ```
 
 ## Environment and tool checks
@@ -124,7 +125,7 @@ The patcher adapts recognized loadable initializers for core use, preserves prev
 | [sqlite_ext_alphabet.bat](sqlite_ext_alphabet.bat) | Adds `alphabet.c` and `SQLITE_ENABLE_ALPHABET`. The patcher adds `sqlite3AlphabetInit` to the dispatcher. | Defines `ALPHABET_TEST` and `ALPHABET_BUILD_LIB` to export the `ab_*` helpers. |
 | [sqlite_ext_ctd.bat](sqlite_ext_ctd.bat) | Adds `ctd.c`, a standalone C API fixture. It has no SQLite initializer. The patcher's message about a missing initialization function is expected for this file. | Defines `CTD_TEST` and `CTD_BUILD_LIB` to export the `ctd_*` interface. |
 
-**To get `alpha_string()` on a new connection, enable both stock and project extensions and leave alphabet enabled.** The stock stage alone sets `SQLITE_EXTRA_AUTOEXT=sqlite3ExtraAutoExtInit` and includes the dispatcher in `EXTRA_SRC`. With only project hooks enabled, the alphabet C source can enter the amalgamation and expose test symbols, but SQLite has no configured call to its initializer. CTD has no SQL registration dependency.
+The stock stage adds `misc_ext_init.c` to `EXTRA_SRC` and sets `SQLITE_EXTRA_AUTOEXT=sqlite3ExtraAutoExtInit`. SQLite then calls the generated dispatcher on each new connection. The template preset skips this stage, so a call to `alpha_string()` returns the error `no such function: alpha_string` even though the DLL exports the alphabet and CTD test APIs.
 
 ### Building local source edits
 
@@ -143,7 +144,7 @@ The harness starts a new `sqlite3.def` with `EXPORTS`. It filters `dumpbin /link
 
 | Destination | Files placed there |
 | --- | --- |
-| `out\build` | NMAKE working directory for all presets. Contains `tsrc`, the generated `sqlite3.c`, build tools and intermediates. |
+| `out\build` | NMAKE working directory shared by all configurations. Contains `tsrc`, the generated `sqlite3.c`, build tools and intermediates. |
 | `out\bin` | `sqlite3.exe` and `sqlite3.dll` when built, staged `icu*.dll` with ICU, and `zlib1.dll` when available and enabled. |
 | `out\include` | Generated `out\build\sqlite3*.h`, including `sqlite3.h` and `sqlite3ext.h` for a normal full build. Project headers for CFFI come from the checkout's `src\`. |
 | `out\lib\import` | `sqlite3.def` and `sqlite3.lib`. Link against this import library to call the shared `sqlite3.dll`. |
@@ -151,14 +152,14 @@ The harness starts a new `sqlite3.def` with `EXPORTS`. It filters `dumpbin /link
 
 Collection first deletes existing files in `out\bin`. It leaves the include and library directories in place and copies available build products. Most build stages propagate errors, but the collector returns success even when a copy fails or a named target produces only a subset. Check the actual files needed by the consumer.
 
-After building the full test preset, these checks exercise SQL registration in the shell and inspect the DLL for one symbol from each project module. Run `dumpbin` in an active MSVC shell.
+To check the preset, look for one exported symbol from each project module and query the SQL function list. Run `dumpbin` in an active MSVC shell.
 
 ```cmd
-out\bin\sqlite3.exe ":memory:" "SELECT narg FROM pragma_function_list WHERE name='alpha_string' ORDER BY narg;"
 dumpbin /exports out\bin\sqlite3.dll | findstr /i /c:"ab_utf8_length" /c:"ctd_version"
+out\bin\sqlite3.exe ":memory:" "SELECT narg FROM pragma_function_list WHERE name='alpha_string' ORDER BY narg;"
 ```
 
-The SQL query should return `1`, `2` and `3`. The symbol check should list both names. For SQL tests through Python, also check which DLL the interpreter loads. [Python test procedure](README.md#test-with-python)
+Both test builds should list `ab_utf8_length` and `ctd_version`. The SQL query returns zero rows with the preset and three rows (`1`, `2`, `3`) with the full-suite configuration. For Python tests, check which SQLite DLL the interpreter loads. [Python test procedure](README.md#test-with-python)
 
 ## Diagnostics and rebuilding
 
@@ -168,7 +169,7 @@ The SQL query should return `1`, `2` and `3`. The symbol check should list both 
 sqlite_msbuild.bat env
 ```
 
-`sqlite_msbuild.bat clean` takes the ordinary target path. Preparation and definition generation still precede NMAKE's `clean`, and the harness then attempts to regenerate the import library from a definition file that `clean` can remove. For a fresh build, move the applicable generated state aside and run the desired preset again.
+`sqlite_msbuild.bat clean` takes the ordinary target path. Preparation and definition generation still precede NMAKE's `clean`, and the harness then attempts to regenerate the import library from a definition file that `clean` can remove. For a fresh build, move the applicable generated state aside and rerun the build.
 
 | What changed | State to refresh |
 | --- | --- |

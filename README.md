@@ -9,9 +9,9 @@ url: https://chatgpt.com/c/6a786079-f408-83eb-87b1-e0d35b2804a5
 
 A working template for developing a C SQLite extension, integrating it directly into a customized SQLite amalgamation, and testing both its **SQLite-facing behavior** and its **underlying C implementation** with pytest.
 
-The worked extension, **alphabet**, registers `alpha_string()` on each SQLite connection. Python's `sqlite3` module exercises that SQL interface. A compiled CFFI wrapper lets pytest call the UTF-8 and alphabet-selection routines in the same test build. A second C module, **CTD**, supplies examples of testing pointers, buffers, callbacks and ownership. [Alphabet implementation](src/alphabet.c) · [CTD interface](src/ctd_api.h)
+The worked extension, **alphabet**, implements the `alpha_string()` SQL function. Python's `sqlite3` module exercises that interface when the build registers alphabet on each connection. A compiled CFFI wrapper lets pytest call the underlying UTF-8 and alphabet-selection routines directly. A second C module, **CTD**, supplies examples of testing pointers, buffers, callbacks and ownership. [Alphabet implementation](src/alphabet.c) · [CTD interface](src/ctd_api.h)
 
-The template is intended for small or medium SQLite extensions whose implementation contains C logic worth testing independently of the SQL interface. Integrating the extension into the amalgamation lets a consumer use it immediately on opening a database connection.
+The template is intended for small or medium SQLite extensions whose implementation contains C logic worth testing independently of the SQL interface. It supplies the alphabet and CTD build hooks and a single test preset. The primary source for the Windows build harness is [SQLite-ICU-MinGW’s Current/MSVC README](https://github.com/pchemguy/SQLite-ICU-MinGW/blob/master/Current/MSVC/README.md).
 
 > [!IMPORTANT]
 >
@@ -21,7 +21,7 @@ The template is intended for small or medium SQLite extensions whose implementat
 
 ## Build the worked example on Windows
 
-Run the commands below from the repository root. Use a checkout path without spaces for the project hooks. Install the Visual C++ Build Tools with a Windows SDK. The bundled Python environment targets x64. If you already have an active, architecture-matched Conda environment with ICU, CFFI, setuptools and pytest, go straight to the build command.
+Run the commands below from the repository root. Use a checkout path without spaces for the project hooks. Install the Visual C++ Build Tools with a Windows SDK. The bundled Python environment targets x64. If your active environment already has architecture-matched Python, CFFI, setuptools and pytest, go straight to the build command.
 
 To use the repository's Python environment, start a clean `cmd.exe /d /e:on /v:on` with `CONDA_PREFIX` unset and with `python.exe` and `conda.bat` absent from `PATH`. Create the environment on first use, then activate it in the current prompt.
 
@@ -30,24 +30,29 @@ call pyenv\Anaconda.bat
 call pyenv\conda_far.bat /batch
 ```
 
-The bootstrap creates `pyenv\Anaconda` and reuses it when its `python.exe` exists. The launcher calls its sibling `pyenv\msbuild.bat` **before** Conda activation and sets `DISTUTILS_USE_SDK=1` after successful MSVC verification. Set SQLite build switches after activation. For the full preset the active prefix must contain the ICU headers, import libraries and versioned DLLs. If they are missing, run `mamba install -c conda-forge icu` in the activated environment. [Bootstrap](pyenv/Anaconda.bat) · [Environment launcher](pyenv/conda_far.bat)
+The bootstrap creates `pyenv\Anaconda` and reuses it when its `python.exe` exists. The launcher calls its sibling `pyenv\msbuild.bat` **before** Conda activation and sets `DISTUTILS_USE_SDK=1` after successful MSVC verification. Set SQLite build switches after activation. [Bootstrap](pyenv/Anaconda.bat) · [Environment launcher](pyenv/conda_far.bat)
 
 **Building local changes.** The project hooks download missing C sources and headers from this repository's `main` branch and then reuse files in `out\cache\SQLiteExtensionTemplate\src`. If you edit `src\` or check out another revision, seed that cache from the checkout and start with a fresh `out\build` before compiling. [Commands for local source edits](sqlite_msbuild.md#building-local-source-edits)
 
-Build SQLite with both project modules and test exports, then query the packaged shell. Running the preset in a child CMD keeps its switches local to that invocation.
+**For the C API tests**, run the template’s preset in a child CMD to keep its settings local. It exports the alphabet and CTD APIs with ICU, zlib and the stock SQLite extensions disabled. [Preset script](sqlite_msbuild_extra.bat)
 
 ```cmd
-cmd /d /c sqlite_msbuild_bare_icu_ext_extra.bat
+cmd /d /c sqlite_msbuild_extra.bat
+```
+
+**For the full SQL and C API suite**, call `sqlite_msbuild.bat` with `SQLITE_EXTRA=1`, `USE_EXTRAS=1` and `USE_TEST=1`. The stock stage registers `alpha_string()` on each new connection. The preset skips that stage. Start with a fresh `out\build` when switching configurations. [Build commands for the full suite](sqlite_msbuild.md#build-for-the-full-test-suite)
+
+Check the SQL-enabled shell from the repository root. The query returns `ABC`.
+
+```cmd
 out\bin\sqlite3.exe ":memory:" "SELECT alpha_string('en', 0, 3);"
 ```
 
-The query should return `ABC`. This preset enables ICU, zlib, the stock `ext\misc` modules, alphabet and CTD. The stock stage provides the dispatcher that registers alphabet when a connection opens. With the build switches unset, invoking `sqlite_msbuild.bat` directly selects the same components with their production linkage. For a SQLite-only build, use `sqlite_msbuild_bare.bat`. [Build guide and preset matrix](sqlite_msbuild.md#running-a-build)
-
 ## Test with Python
 
-### Select the SQLite DLL for the SQL tests
+### Select the SQLite DLL used by pytest
 
-The SQL fixtures open ordinary in-memory connections with Python's `sqlite3` module. A passing query in `out\bin\sqlite3.exe` establishes that the shell contains alphabet. Check separately which SQLite DLL the test interpreter loads. [DLL path helper](tool/sqlite3_dll_path.py)
+The test fixtures import Python’s `sqlite3` module before loading the CFFI wrapper. To use the same build for both, first locate the SQLite DLL loaded by the test interpreter. [DLL path helper](tool/sqlite3_dll_path.py)
 
 ```cmd
 python tool\sqlite3_dll_path.py
@@ -59,26 +64,43 @@ In the dedicated test environment, save the original DLL before replacing it wit
 copy /y "out\bin\sqlite3.dll" "%CONDA_PREFIX%\Library\bin\sqlite3.dll"
 ```
 
-Use the reported location for other Python distributions. The interpreter needs a separately loaded, architecture-matched `sqlite3.dll` and access to the enabled runtime dependencies. The full preset uses the active environment's ICU. If `zlib1.dll` is needed beside the replacement, its built copy is in `out\bin`. Run the following checks in fresh Python processes.
+Use the reported location for other Python distributions. The interpreter needs a separately loaded, architecture-matched `sqlite3.dll` and access to the enabled runtime dependencies. For the SQL-enabled build, the harness collects `zlib1.dll` in `out\bin`. With that build, you can check SQL registration in a fresh Python process before compiling the wrapper.
 
 ```cmd
 python -c "import sqlite3; db=sqlite3.connect(':memory:'); print(db.execute('SELECT alpha_string(?, ?, ?)', ('en', 0, 3)).fetchone()[0])"
 python -m pytest alphabet\tests\test_registration.py
 ```
 
-Expect `ABC` and registrations for arities 1, 2 and 3. This SQL test can run as soon as Python loads the correct DLL.
+Expect `ABC` and registrations for arities 1, 2 and 3.
 
-### Compile the CFFI wrapper and run the full suite
+### Compile the CFFI wrapper and run pytest
 
 Use the same Python and an active MSVC environment. The SQLite harness collects `sqlite3*.h` under `out\include`. The wrapper compiler also needs the original `alphabet.h`, `ctd.h` and their `_api.h` catalogues. Copy the project's headers from the same revision used for the DLL before invoking the builder.
 
 ```cmd
 copy /y "src\*.h" "out\include\"
 python alphabet\src\alphabet\build_wrapper.py
-python -m pytest alphabet\tests
 ```
 
 The builder discovers each `src\*_api.h` with its matching `.c` and `.h`, prepares the declarations for `ffi.cdef()`, and includes each component header in generated C. It compiles a single **`_cffi_wrapper`** against the import libraries in `out\lib\import` with `<NAME>_TEST` and `<NAME>_USE_LIB`. It writes the extension under `alphabet\src\alphabet` and copies the contents of `out\bin` beside it. The pytest fixtures import that prebuilt module and expose its `ffi` and `lib` objects. [Wrapper builder](alphabet/src/alphabet/build_wrapper.py) · [Fixtures](alphabet/tests/conftest.py)
+
+With the template’s preset, run the C API tests for both modules.
+
+```cmd
+python -m pytest ^
+  alphabet\tests\test_alphabet_helpers.py ^
+  alphabet\tests\test_alphabet_wrapper_api.py ^
+  alphabet\tests\test_cffi_usage_patterns.py ^
+  alphabet\tests\test_globals_status_and_scalars.py ^
+  alphabet\tests\test_pointers_arrays_and_bytes.py ^
+  alphabet\tests\test_strings_structures_and_ownership.py
+```
+
+With the SQL-enabled test build, run the entire suite.
+
+```cmd
+python -m pytest alphabet\tests
+```
 
 | Test surface | Examples in this repository |
 | --- | --- |
@@ -140,7 +162,7 @@ static int alphabetInit(sqlite3 *db) {
 }
 ```
 
-The two entry points in the same source file share that routine. In the integrated build, the dispatcher calls `sqlite3AlphabetInit(db)` when SQLite opens a database connection. A standalone loadable build exports `sqlite3_alphabet_init`, which first initializes the SQLite API dispatch table from `pApi`. The Windows harness builds the integrated form.
+The two entry points in the same source file share that routine. In the integrated build with stock extensions enabled, the dispatcher calls `sqlite3AlphabetInit(db)` when SQLite opens a database connection. A standalone loadable build exports `sqlite3_alphabet_init`, which first initializes the SQLite API dispatch table from `pApi`. The Windows harness builds the integrated form.
 
 ```c
 #ifdef SQLITE_CORE
@@ -205,7 +227,7 @@ For CFFI tests, keep the owner of `ffi.new()` or `ffi.from_buffer()` storage ali
 
 | Path | Contents |
 | --- | --- |
-| [sqlite_msbuild.bat](sqlite_msbuild.bat) and [sqlite_msbuild.md](sqlite_msbuild.md) | Native build entry point, preset matrix, feature switches, cache and rebuild instructions. |
+| [sqlite_msbuild.bat](sqlite_msbuild.bat) and [sqlite_msbuild.md](sqlite_msbuild.md) | Native build entry point, template preset, feature switches, cache and rebuild instructions. |
 | [msbuild.bat](msbuild.bat) and [pyenv/](pyenv/) | MSVC discovery and verification, plus the Python bootstrap and activation scripts. |
 | [src/](src/) and [tool/](tool/) | Project C sources and declaration catalogues, Tcl preparation scripts and development utilities. |
 | [alphabet/src/alphabet/](alphabet/src/alphabet/) | CFFI builder, CTD demonstration, wrapper introspection and SQLite metadata utilities. |
