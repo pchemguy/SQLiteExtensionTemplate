@@ -2,7 +2,9 @@
 projects:
   - https://chatgpt.com/g/g-p-6a660e31e55c8191805f7e5893694e70
   - https://chatgpt.com/g/g-p-6a60b416edf081918615b69ac96e4304
-url: https://chatgpt.com/c/6a786079-f408-83eb-87b1-e0d35b2804a5
+urls:
+  - https://chatgpt.com/c/6a786079-f408-83eb-87b1-e0d35b2804a5
+  - https://chatgpt.com/c/6b06bdd1-be88-83ea-b551-049981ea67cd
 ---
 
 # SQLite C Extension Template
