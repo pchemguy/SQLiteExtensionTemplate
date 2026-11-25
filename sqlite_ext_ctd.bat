@@ -84,9 +84,9 @@ set "SECTION=EXTRA_SRC_THIRD"
 :: set OPT_XTRA=%OPT_XTRA% -DSQLITE_ENABLE_ALPHABET
 
 if "%USE_TEST%"=="1" (
-    set OPT_XTRA=%OPT_XTRA%      ^
-        -DALPHABET_TEST          ^
-        -DALPHABET_BUILD_LIB
+    set OPT_XTRA=%OPT_XTRA% ^
+        -DCTD_TEST          ^
+        -DCTD_BUILD_LIB
 )
 
 set SOURCES=^
