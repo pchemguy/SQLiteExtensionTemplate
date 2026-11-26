@@ -9,17 +9,16 @@ urls:
 
 # SQLite C Extension Template
 
-This template shows how to write a SQLite extension in C, integrate it into a customized SQLite amalgamation, and test both its **SQL interface** and its **underlying C implementation** with pytest.
+This template integrates **Alphabet**, a minimal demo extension written in C, into the SQLite core and tests both its SQL interface and its C API from Python. **CTD**, a C module with no SQLite dependency, illustrates the broader aim: testing a component through its own C API while it remains part of a larger library.
 
 ## Overview
 
-The template is intended for small or medium SQLite extensions with C logic worth testing independently of SQL. It demonstrates how to:
+The Windows build harness compiles both components into the SQLite amalgamation (`sqlite3.c`). They expose different interfaces:
 
-- Integrate the [alphabet extension](src/alphabet.c) into the SQLite amalgamation. In a SQL-enabled build, `alpha_string()` is available on each new connection without loading a separate extension DLL.
-- Test registration, arguments, results and SQL errors through Python’s standard `sqlite3` module.
-- Test the same DLL’s exported C routines through a compiled CFFI API-mode wrapper. Alphabet supplies UTF-8 and alphabet-selection helpers; [CTD](src/ctd_api.h) is a plain C module with examples of pointers, buffers, callbacks and ownership.
+- [**Alphabet**](src/alphabet.c) provides the scalar SQL function `alpha_string()` and a [C API](src/alphabet_api.h) for UTF-8 traversal and alphabet selection. In the SQL-enabled build, Alphabet is a built-in auto-extension: its initializer registers `alpha_string()` on each new connection without loading a separate extension DLL. Python’s `sqlite3` exercises SQL registration, argument handling, results and errors; a compiled CFFI API-mode wrapper calls the helpers exported by the test build.
+- [**CTD**](src/ctd_api.h) is a standalone C module from [CFFI_Pytest_C_Testing](https://github.com/pchemguy/CFFI_Pytest_C_Testing). It implements only a C API: it calls no SQLite routines and has no SQL functions or SQLite initializer. Its examples demonstrate how to test pointers, buffers, structures, callbacks, ownership and failure behavior from Python with CFFI and pytest.
 
-The template supplies the alphabet and CTD build hooks and one C API test preset. The primary source for the Windows build harness is [SQLite-ICU-MinGW’s Current/MSVC README](https://github.com/pchemguy/SQLite-ICU-MinGW/blob/master/Current/MSVC/README.md).
+The template is intended for small or medium SQLite extensions with C logic worth testing independently of SQL. It supplies the Alphabet and CTD build hooks and one C API test preset. The primary source for the Windows build harness is [SQLite-ICU-MinGW’s Current/MSVC README](https://github.com/pchemguy/SQLite-ICU-MinGW/blob/master/Current/MSVC/README.md).
 
 > [!IMPORTANT]
 >
@@ -51,13 +50,13 @@ The bootstrap creates `pyenv\Anaconda` and reuses it when its `python.exe` exist
 
 ### Choose a test build
 
-Choose **one** of the two configurations below for this checkout. Both export the alphabet and CTD C APIs; only the full-suite configuration registers `alpha_string()`.
+Choose **one** of the two configurations below for this checkout. Both export the Alphabet and CTD C APIs; only the full-suite configuration registers `alpha_string()`.
 
 **Building local changes.** The project hooks fetch missing C sources and headers from this repository’s `main` branch, then reuse the files in `out\cache\SQLiteExtensionTemplate\src`. For local edits or a checkout at a different revision, seed the cache from that checkout before compiling. When rebuilding edited sources within the **same configuration**, start with a fresh `out\build` so NMAKE regenerates the amalgamation. [Commands for local source edits](sqlite_msbuild.md#building-local-source-edits)
 
 #### Full suite: SQL and C API tests
 
-Call the main harness directly with the [full-suite settings](sqlite_msbuild.md#build-for-the-full-test-suite). The stock stage supplies the registration dispatcher and enables ZLIB. The alphabet hook adds its initializer to the dispatcher; `USE_TEST=1` enables the C exports. This recipe does not require ICU.
+Call the main harness directly with the [full-suite settings](sqlite_msbuild.md#build-for-the-full-test-suite). `SQLITE_EXTRA=1` includes the auto-extension dispatcher and enables ZLIB. This recipe does not require ICU.
 
 ```cmd
 set "USE_ICU=0"
@@ -68,7 +67,12 @@ set "USE_TEST=1"
 cmd /d /c sqlite_msbuild.bat
 ```
 
-Check registration in the shell produced by this build. The query returns `ABC`:
+`USE_EXTRAS=1` runs both project hooks, but only Alphabet has a SQL feature to enable:
+
+- The [Alphabet hook](sqlite_ext_alphabet.bat) skips the component when `SQLITE_ENABLE_ALPHABET=0`. Otherwise it adds `-DSQLITE_ENABLE_ALPHABET`, the compile definition that guards the dispatcher’s call to `sqlite3AlphabetInit(db)`.
+- There is no `SQLITE_ENABLE_CTD` switch. The [CTD hook](sqlite_ext_ctd.bat) adds `ctd.c` whenever project hooks run. CTD has no SQLite initializer for the dispatcher to call.
+
+`USE_TEST=1` enables the C exports of the included components; it does not register SQL functions. To check SQL registration in this build, run the following query in its shell. It returns `ABC`:
 
 ```cmd
 out\bin\sqlite3.exe ":memory:" "SELECT alpha_string('en', 0, 3);"
@@ -146,13 +150,19 @@ python -m pytest alphabet\tests
 
 | Test surface | Examples in this repository |
 | --- | --- |
-| SQL registration and behavior | Arity and flags, argument validation, Unicode slicing, NULL propagation, expression indexes, and execution with an untrusted schema. [Registration](alphabet/tests/test_registration.py) · [SQL contract](alphabet/tests/test_alpha_string_sql.py) · [SQL contexts](alphabet/tests/test_sql_context.py) |
+| Alphabet SQL registration and behavior | Arity and flags, argument validation, Unicode slicing, NULL propagation, expression indexes, and execution with an untrusted schema. [Registration](alphabet/tests/test_registration.py) · [SQL contract](alphabet/tests/test_alpha_string_sql.py) · [SQL contexts](alphabet/tests/test_sql_context.py) |
 | Alphabet C API | Function signatures, byte widths, code-point counts, byte offsets, and lifetime of borrowed alphabet strings. [Helper tests](alphabet/tests/test_alphabet_helpers.py) · [Wrapper API tests](alphabet/tests/test_alphabet_wrapper_api.py) |
 | CTD C API | Mutable globals, failure contracts, pointer and buffer capacities, callbacks, structured data and C-owned allocations. [Pointers and buffers](alphabet/tests/test_pointers_arrays_and_bytes.py) · [Ownership](alphabet/tests/test_strings_structures_and_ownership.py) · [CFFI usage](alphabet/tests/test_cffi_usage_patterns.py) |
 
 A passing C helper test does not show that SQLite registered the SQL function. If the helpers pass but Python reports `no such function: alpha_string`, check [which configuration you built](#choose-a-test-build) and [which DLL Python loaded](#select-the-sqlite-dll-used-by-pytest). Conversely, an expected SQL result does not prove that the DLL exports the C symbols or that a helper honors its buffer and lifetime contracts. Those are direct C API checks.
 
-## The alphabet SQL interface
+### Testing CTD inside a larger library
+
+In the [standalone CTD build](https://github.com/pchemguy/CFFI_Pytest_C_Testing#standalone-ctd-build), the CFFI wrapper links against `ctd.dll`, which contains only CTD. Here the wrapper links against the test build of `sqlite3.dll`, which contains CTD alongside Alphabet and SQLite itself. No separate CTD DLL is needed.
+
+The [original callback test](https://github.com/pchemguy/CFFI_Pytest_C_Testing/blob/main/ctd/tests/test_cffi_usage_patterns.py) and [its counterpart in this template](alphabet/tests/test_cffi_usage_patterns.py) illustrate what stays the same: both pass a Python callback and user data to `lib.ctd_apply_callback()` and check that it returns `CTD_OK` and writes `32` to the output. The test exercises the component through its own C API regardless of which DLL contains it.
+
+## The Alphabet SQL interface
 
 ```sql
 alpha_string(language [, start [, length]])
@@ -235,7 +245,7 @@ int sqlite3_alphabet_init(
 
 ## The test-visible C contract
 
-The implementation, linkage rules and declaration catalogue have separate jobs. For alphabet, `alphabet.c` implements the SQL adapter and four helper routines, `alphabet.h` selects linkage and includes the catalogue, and `alphabet_api.h` declares the helpers and documents their preconditions. CTD uses the same file arrangement. [Alphabet header](src/alphabet.h) · [Alphabet API catalogue](src/alphabet_api.h) · [CTD header](src/ctd.h)
+The implementation, linkage rules and declaration catalogue have separate jobs. For Alphabet, `alphabet.c` implements the SQL adapter and four helper routines, `alphabet.h` selects linkage and includes the catalogue, and `alphabet_api.h` declares the helpers and documents their preconditions. CTD uses the same file arrangement. [Alphabet header](src/alphabet.h) · [Alphabet API catalogue](src/alphabet_api.h) · [CTD header](src/ctd.h)
 
 In a production build `ALPHABET_TEST_API` gives the helpers internal linkage. In the test DLL, `ALPHABET_TEST` with `ALPHABET_BUILD_LIB` exports them. The wrapper consumes the same declarations with `ALPHABET_TEST` and `ALPHABET_USE_LIB`. CTD uses the corresponding `CTD_*` macros. This makes selected routines testable directly while the SQL interface stays the same.
 
@@ -273,8 +283,8 @@ The [CTD API catalogue](src/ctd_api.h) documents these contracts. The [fixtures]
 ## Adapting the template
 
 1. **Define the C contract.** For each component the wrapper should expose, provide `src\<name>.c`, `src\<name>.h` and `src\<name>_api.h`. The [wrapper builder](alphabet/src/alphabet/build_wrapper.py) scans every `*_api.h` and checks that the matching linkage header contains `<NAME>_TEST` and defines `<NAME>_TEST_API`. Keep compiler-only includes and linkage logic in `<name>.h`. The catalogue supplies the declarations for `ffi.cdef()`; document pointer direction, valid ranges, length units, ownership, lifetime and failure behavior there.
-2. **Stage your own sources.** Add a `sqlite_ext_<name>.bat` hook beside `sqlite_msbuild.bat`; `USE_EXTRAS=1` runs the project hooks. When copying the [alphabet hook](sqlite_ext_alphabet.bat), change `URL_PREFIX`, the filenames and the cache path to use your own repository and intended revision. Stage the sources and headers in `tsrc`, run the patcher and bundler on the staged C file, and append it to `EXTRA_SRC`. When `USE_TEST=1`, add `-D<NAME>_TEST` and `-D<NAME>_BUILD_LIB` to `OPT_XTRA`.
-3. **Register SQL features separately from compiling them.** For a SQL extension, provide an initializer the [patcher](tool/patch_sqlite_misc_autoext.tcl) recognizes, such as `sqlite3AlphabetInit`. Enable the matching dispatcher guard (for alphabet, `SQLITE_ENABLE_ALPHABET`) in the hook and build with `SQLITE_EXTRA=1` to include the dispatcher. Adding a C file to `EXTRA_SRC` alone does not register a SQL function. A plain C module like [CTD](sqlite_ext_ctd.bat) needs no SQLite initializer.
+2. **Stage your own sources.** Add a `sqlite_ext_<name>.bat` hook beside `sqlite_msbuild.bat`; `USE_EXTRAS=1` runs the project hooks. When copying the [Alphabet hook](sqlite_ext_alphabet.bat), change `URL_PREFIX`, the filenames and the cache path to use your own repository and intended revision. Stage the sources and headers in `tsrc`, run the patcher and bundler on the staged C file, and append it to `EXTRA_SRC`. When `USE_TEST=1`, add `-D<NAME>_TEST` and `-D<NAME>_BUILD_LIB` to `OPT_XTRA`.
+3. **Register SQL features separately from compiling them.** For a SQL extension, provide an initializer the [patcher](tool/patch_sqlite_misc_autoext.tcl) recognizes, such as `sqlite3AlphabetInit`. Enable the matching dispatcher guard (for Alphabet, `SQLITE_ENABLE_ALPHABET`) in the hook and build with `SQLITE_EXTRA=1` to include the dispatcher. Adding a C file to `EXTRA_SRC` alone does not register a SQL function. A plain C module like [CTD](sqlite_ext_ctd.bat) needs neither a SQLite initializer nor a dispatcher guard.
 4. **Verify the result.** Rebuild SQLite, check the [DLL exports](sqlite_msbuild.md#exports-and-packaged-files) and, for a SQL extension, check registration on a new connection. Stage the matching headers, compile the wrapper, then test the C contract and the SQL behavior through their respective interfaces.
 
 ## Repository guide
@@ -294,4 +304,4 @@ For background on the two techniques used in the template, see the [SQLite MSVC 
 
 - Keep SQL registration and argument handling in the SQLite adapter. The same registration routine can serve both built-in and loadable entry points.
 - Use a project hook to stage the C implementation and a shared `*_api.h` catalogue to declare the routines worth testing directly. Test-build macros expose those routines from `sqlite3.dll` without making them public in the normal build.
-- Test the same DLL through both interfaces: Python’s `sqlite3` for per-connection registration and SQL behavior, and the compiled CFFI wrapper for C-level results, ownership and lifetime.
+- Test the same DLL through both interfaces: Python’s `sqlite3` for Alphabet’s SQL registration and behavior, and the compiled CFFI wrapper for Alphabet’s helpers and CTD’s C API. CTD can be tested inside SQLite without adding a SQL adapter.
