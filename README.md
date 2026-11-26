@@ -26,6 +26,8 @@ The template is intended for small or medium SQLite extensions with C logic wort
 >
 > This project has been developed with extensive generative-AI assistance. Assistance covered project exploration, design discussion, specification development, implementation, testing, technical review, and documentation. See [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for further details. Responsibility for the published software remains with the maintainer.
 
+The [SQLite MSVC build field note](https://github.com/pchemguy/Field-Notes/tree/main/notes/11-sqlite-msvc-build) explains how the harness integrates loadable extensions into the amalgamation and registers them automatically on each new connection.
+
 ## Build the worked example on Windows
 
 Run the commands from the repository root in Windows CMD. Install the Visual C++ Build Tools with a Windows SDK and use a checkout path without spaces for the project hooks.
@@ -298,7 +300,13 @@ The [CTD API catalogue](src/ctd_api.h) documents these contracts. The [fixtures]
 | [alphabet/tests/](alphabet/tests/) and [pyproject.toml](pyproject.toml) | pytest suite and Python project configuration. |
 | `out\` (generated) | `cache` holds downloaded inputs, `sqlite` the extracted tree, and `build` the NMAKE working files. Packaged outputs go to `bin`, `include`, `lib\import` and `lib\static`. |
 
-For background on the two techniques used in the template, see the [SQLite MSVC build field note](https://github.com/pchemguy/Field-Notes/tree/main/notes/11-sqlite-msvc-build) and the [CFFI/pytest C testing reference](https://github.com/pchemguy/CFFI_Pytest_C_Testing).
+## Further examples
+
+| Extension | What it demonstrates |
+| --- | --- |
+| [SQLiteICUex](https://github.com/pchemguy/SQLiteICUex) | Registers the ICU-backed `UTF_CI` and `UTF_CI_AI` collations and exposes Unicode case folding and normalization through `str_casefold()` and `str_normalize()`. |
+| [SQLitePackedBlob](https://github.com/pchemguy/SQLitePackedBlob) | `pblob_pack()` encodes a one-dimensional JSON array of numbers as a binary16 or binary32 BLOB; `pblob_unpack()` decodes it to JSON text. |
+| [SQLiteRegexpMatches](https://github.com/pchemguy/SQLiteRegexpMatches) | Reuses SQLite’s `ext/misc/regexp.c` in the amalgamation. `regexp_matches()` and `regexpi_matches()` return non-overlapping matches as a JSON array. |
 
 ## Summary
 
