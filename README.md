@@ -20,13 +20,13 @@ The Windows build harness compiles both components into the SQLite amalgamation 
 
 The template is intended for small or medium SQLite extensions with C logic worth testing independently of SQL. It supplies the Alphabet and CTD build hooks and one C API test preset. The primary source for the Windows build harness is [SQLite-ICU-MinGW’s Current/MSVC README](https://github.com/pchemguy/SQLite-ICU-MinGW/blob/master/Current/MSVC/README.md).
 
+The [SQLite MSVC build field note](https://github.com/pchemguy/Field-Notes/tree/main/notes/11-sqlite-msvc-build) explains how the harness integrates loadable extensions into the amalgamation and registers them automatically on each new connection.
+
 > [!IMPORTANT]
 >
 > **AI-Assisted Development Disclosure**
 >
 > This project has been developed with extensive generative-AI assistance. Assistance covered project exploration, design discussion, specification development, implementation, testing, technical review, and documentation. See [AI_DISCLOSURE.md](AI_DISCLOSURE.md) for further details. Responsibility for the published software remains with the maintainer.
-
-The [SQLite MSVC build field note](https://github.com/pchemguy/Field-Notes/tree/main/notes/11-sqlite-msvc-build) explains how the harness integrates loadable extensions into the amalgamation and registers them automatically on each new connection.
 
 ## Build the worked example on Windows
 
