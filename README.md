@@ -34,7 +34,7 @@ Run the commands from the repository root in Windows CMD. Install the Visual C++
 
 ### Prepare the Python environment
 
-If you already have a dedicated test environment with architecture-matched Python, CFFI, setuptools and pytest, use it with the matching MSVC toolchain and skip the bundled setup. The bundled Python environment targets x64.
+If you already have a dedicated test environment with architecture-matched Python, CFFI, setuptools and pytest, use it with the matching MSVC toolchain and skip the bundled setup. The bundled [Conda-Bootstrap](https://github.com/pchemguy/Conda-Bootstrap) scripts set up an x64 Python environment.
 
 > [!CAUTION]
 > The bundled scripts also change the Windows user profile. The [environment launcher](pyenv/conda_far.bat) removes existing `%LOCALAPPDATA%\pip\cache` and `%LOCALAPPDATA%\uv\cache` directories and replaces them with junctions to its selected caches. On first bootstrap, [Anaconda.bat](pyenv/Anaconda.bat) also removes `%APPDATA%\mamba` if it exists. To leave those locations untouched, use your own environment and skip both commands below.
